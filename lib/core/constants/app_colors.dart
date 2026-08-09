@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Centralized color palette for ShelfChef AI app.
@@ -34,7 +35,31 @@ abstract class AppColors {
 
   // --- Glassmorphism overlay colors ---
   static const Color glassLightSurface = Color(0x99FFFFFF); // 60% opacity white
-  static const Color glassLightBorder = Color(0x40FFFFFF);  // 25% opacity white
-  static const Color glassDarkSurface = Color(0x991E293B);  // 60% opacity dark navy
-  static const Color glassDarkBorder = Color(0x33FFFFFF);   // 20% opacity white
+  static const Color glassLightBorder = Color(0x40FFFFFF); // 25% opacity white
+  static const Color glassDarkSurface = Color(
+    0x991E293B,
+  ); // 60% opacity dark navy
+  static const Color glassDarkBorder = Color(0x33FFFFFF); // 20% opacity white
+
+  // --- Curated Accent Color Palette ---
+  static const List<Color> accentPalette = [
+    Color(0xFF10B981), // Emerald
+    Color(0xFF8B5CF6), // AI Purple
+    Color(0xFFF59E0B), // Warm Gold
+    Color(0xFF3B82F6), // Ocean Blue
+    Color(0xFFEC4899), // Rose Pink
+    Color(0xFF06B6D4), // Cyan
+    Color(0xFF22C55E), // Vivid Green
+    Color(0xFFF97316), // Coral Orange
+  ];
+
+  static final math.Random _random = math.Random();
+
+  /// Global constant utility function to generate / pick a random harmonized accent color.
+  static Color getRandomColor([int? seed]) {
+    if (seed != null) {
+      return accentPalette[seed.abs() % accentPalette.length];
+    }
+    return accentPalette[_random.nextInt(accentPalette.length)];
+  }
 }

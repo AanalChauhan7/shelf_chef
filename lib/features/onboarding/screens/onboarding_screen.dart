@@ -1,22 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../auth/screens/get_started_screen.dart';
+import '../widgets/onboarding_slide_card.dart';
 
-class OnboardingItem {
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color accentColor;
-
-  const OnboardingItem({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.accentColor,
-  });
-}
-
-/// Onboarding Carousel screen with 3 slides and Skip navigation.
+/// A clean, simple, and elegant onboarding carousel under 170 lines.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -28,27 +15,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingItem> _slides = const [
-    OnboardingItem(
+  final List<OnboardingSlide> _slides = const [
+    OnboardingSlide(
       title: 'Smart Pantry Management',
       description:
-          'Keep track of groceries, expiry dates, and categories. Never let food go to waste unnoticed.',
-      icon: Icons.inventory_2_rounded,
-      accentColor: AppColors.primaryGreen,
+          'Keep track of your groceries, monitor expiration dates, and keep your kitchen perfectly organized.',
+      imagePath: 'assets/images/onboarding_pantry.jpg',
     ),
-    OnboardingItem(
-      title: 'AI Recipes & Cooking Mode',
+    OnboardingSlide(
+      title: 'AI Recipes & Cooking',
       description:
-          'Generate delicious recipes based on available ingredients, select serving size, and listen to step-by-step voice guidance.',
-      icon: Icons.auto_awesome_rounded,
-      accentColor: AppColors.aiPurple,
+          'Discover delicious recipes tailored to the ingredients you already have in your pantry.',
+      imagePath: 'assets/images/onboarding_recipe.jpg',
     ),
-    OnboardingItem(
-      title: 'Grocery Budget & Analytics',
+    OnboardingSlide(
+      title: 'Grocery Budget & Savings',
       description:
-          'Set a monthly spending limit, track expense graphs, and get cheaper alternative product suggestions when budget exceeds.',
-      icon: Icons.account_balance_wallet_rounded,
-      accentColor: AppColors.secondaryGreen,
+          'Track your monthly spending, reduce food waste, and save money on your grocery bills.',
+      imagePath: 'assets/images/onboarding_grocery.jpg',
     ),
   ];
 
@@ -60,7 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 300),
+        transitionDuration: const Duration(milliseconds: 250),
       ),
     );
   }
@@ -68,7 +52,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _nextPage() {
     if (_currentPage < _slides.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 350),
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
@@ -87,13 +71,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // Top Navigation Bar (Skip Button)
+            // Top Bar (Minimal Branding + Skip)
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.p20,
+                horizontal: AppSizes.p24,
                 vertical: AppSizes.p12,
               ),
               child: Row(
@@ -102,21 +87,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Row(
                     children: [
                       Container(
-                        width: 12,
-                        height: 12,
-                        decoration: const BoxDecoration(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
                           color: AppColors.primaryGreen,
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.kitchen_rounded,
+                          color: Colors.white,
+                          size: 16,
                         ),
                       ),
                       const SizedBox(width: AppSizes.p8),
                       Text(
-                        'ShelfChef AI',
+                        'ShelfChef',
                         style: AppTextStyles.titleMedium(
                           color: isDark
                               ? AppColors.darkTextPrimary
                               : AppColors.textPrimary,
-                        ),
+                        ).copyWith(fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -124,7 +114,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: _navigateToGetStarted,
                     child: Text(
                       'Skip',
-                      style: AppTextStyles.buttonMedium(
+                      style: AppTextStyles.bodyMedium(
                         color: isDark
                             ? AppColors.darkTextSecondary
                             : AppColors.textSecondary,
@@ -135,7 +125,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // Onboarding PageView Carousel
+            // Main Carousel PageView
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -146,58 +136,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   });
                 },
                 itemBuilder: (context, index) {
-                  final item = _slides[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSizes.p24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Eco-Glass Icon Container
-                        GlassContainer(
-                          borderRadius: AppSizes.radiusXL,
-                          padding: const EdgeInsets.all(AppSizes.p32),
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: item.accentColor.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              item.icon,
-                              size: 64,
-                              color: item.accentColor,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: AppSizes.p40),
-
-                        // Title
-                        Text(
-                          item.title,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.headingLarge(
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-
-                        const SizedBox(height: AppSizes.p16),
-
-                        // Description
-                        Text(
-                          item.description,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.bodyLarge(
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+                  return OnboardingSlideCard(
+                    slide: _slides[index],
+                    isDark: isDark,
                   );
                 },
               ),
@@ -208,23 +149,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.all(AppSizes.p24),
               child: Column(
                 children: [
-                  // Eco-Glass Dot Indicators
+                  // Dot Indicators
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(_slides.length, (index) {
                       final isActive = _currentPage == index;
                       return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
+                        duration: const Duration(milliseconds: 250),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: isActive ? 28 : 10,
-                        height: 10,
+                        width: isActive ? 24 : 8,
+                        height: 8,
                         decoration: BoxDecoration(
                           color: isActive
                               ? AppColors.primaryGreen
                               : (isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.border),
-                          borderRadius: BorderRadius.circular(5),
+                                    ? AppColors.darkBorder
+                                    : const Color(0xFFCBD5E1)),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       );
                     }),
@@ -232,7 +173,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                   const SizedBox(height: AppSizes.p24),
 
-                  // Next / Get Started Button
+                  // Button
                   _currentPage == _slides.length - 1
                       ? AppButton(
                           text: 'Get Started',

@@ -25,7 +25,8 @@ class AppChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = activeColor ?? (isDark ? AppColors.darkAccent : AppColors.primaryGreen);
+    final primary =
+        activeColor ?? (isDark ? AppColors.darkAccent : AppColors.primaryGreen);
 
     final bg = isSelected
         ? primary
@@ -59,17 +60,10 @@ class AppChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: AppSizes.iconSM,
-                  color: textColor,
-                ),
+                Icon(icon, size: AppSizes.iconSM, color: textColor),
                 const SizedBox(width: AppSizes.p4),
               ],
-              Text(
-                label,
-                style: AppTextStyles.label(color: textColor),
-              ),
+              Text(label, style: AppTextStyles.label(color: textColor)),
             ],
           ),
         ),
@@ -186,9 +180,9 @@ class StatusBadge extends StatelessWidget {
           ],
           Text(
             label,
-            style: AppTextStyles.caption(color: fg).copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTextStyles.caption(
+              color: fg,
+            ).copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),

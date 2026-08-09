@@ -39,10 +39,7 @@ abstract class AppGradients {
 
   /// Card Border Gradient for Glowing Eco-Glass Cards
   static const LinearGradient glassBorderGradient = LinearGradient(
-    colors: [
-      Color(0x66FFFFFF),
-      Color(0x1AFFFFFF),
-    ],
+    colors: [Color(0x66FFFFFF), Color(0x1AFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

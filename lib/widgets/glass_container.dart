@@ -38,10 +38,12 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final defaultBg = backgroundColor ??
+    final defaultBg =
+        backgroundColor ??
         (isDark ? AppColors.glassDarkSurface : AppColors.glassLightSurface);
 
-    final defaultBorder = borderColor ??
+    final defaultBorder =
+        borderColor ??
         (isDark ? AppColors.glassDarkBorder : AppColors.glassLightBorder);
 
     Widget container = Container(
@@ -52,25 +54,21 @@ class GlassContainer extends StatelessWidget {
         color: defaultBg,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: defaultBorder, width: 1.2),
-        boxShadow: shadows ?? (isDark ? AppShadows.darkCardShadow : AppShadows.cardShadow),
+        boxShadow:
+            shadows ??
+            (isDark ? AppShadows.darkCardShadow : AppShadows.cardShadow),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
+          child: Padding(padding: padding, child: child),
         ),
       ),
     );
 
     if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: container,
-      );
+      return GestureDetector(onTap: onTap, child: container);
     }
 
     return container;

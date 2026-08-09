@@ -31,8 +31,10 @@ class AppCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final cardBg = color ?? (isDark ? AppColors.darkCard : AppColors.surface);
-    final border = borderColor ?? (isDark ? AppColors.darkBorder : AppColors.border);
-    final cardShadows = shadows ?? (isDark ? AppShadows.darkCardShadow : AppShadows.cardShadow);
+    final border =
+        borderColor ?? (isDark ? AppColors.darkBorder : AppColors.border);
+    final cardShadows =
+        shadows ?? (isDark ? AppShadows.darkCardShadow : AppShadows.cardShadow);
 
     Widget cardChild = Container(
       padding: padding,
@@ -59,9 +61,6 @@ class AppCard extends StatelessWidget {
       );
     }
 
-    return Container(
-      margin: margin,
-      child: cardChild,
-    );
+    return Container(margin: margin, child: cardChild);
   }
 }

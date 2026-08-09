@@ -9,6 +9,7 @@ abstract class AppSizes {
   static const double p16 = 16.0;
   static const double p20 = 20.0;
   static const double p24 = 24.0;
+  static const double p28 = 28.0;
   static const double p32 = 32.0;
   static const double p40 = 40.0;
   static const double p48 = 48.0;
@@ -22,12 +23,24 @@ abstract class AppSizes {
   static const double radiusPill = 100.0;
 
   // Radius objects for quick reuse
-  static const BorderRadius borderXS = BorderRadius.all(Radius.circular(radiusXS));
-  static const BorderRadius borderSM = BorderRadius.all(Radius.circular(radiusSM));
-  static const BorderRadius borderMD = BorderRadius.all(Radius.circular(radiusMD));
-  static const BorderRadius borderLG = BorderRadius.all(Radius.circular(radiusLG));
-  static const BorderRadius borderXL = BorderRadius.all(Radius.circular(radiusXL));
-  static const BorderRadius borderPill = BorderRadius.all(Radius.circular(radiusPill));
+  static const BorderRadius borderXS = BorderRadius.all(
+    Radius.circular(radiusXS),
+  );
+  static const BorderRadius borderSM = BorderRadius.all(
+    Radius.circular(radiusSM),
+  );
+  static const BorderRadius borderMD = BorderRadius.all(
+    Radius.circular(radiusMD),
+  );
+  static const BorderRadius borderLG = BorderRadius.all(
+    Radius.circular(radiusLG),
+  );
+  static const BorderRadius borderXL = BorderRadius.all(
+    Radius.circular(radiusXL),
+  );
+  static const BorderRadius borderPill = BorderRadius.all(
+    Radius.circular(radiusPill),
+  );
 
   // --- Widget Heights & Sizes ---
   static const double buttonHeightSm = 40.0;

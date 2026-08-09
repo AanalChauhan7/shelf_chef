@@ -408,17 +408,64 @@ This is a major accessibility and premium feature.
 
 ---
 
-## 🔧 Technology Stack
+## 📐 Coding Standards & Architectural Constraints
 
-| Feature | Technology |
-|---|---|
-| Frontend | Flutter |
-| Authentication | Firebase Auth |
-| Cloud Storage | Firestore |
-| Local Storage | SQLite |
-| OCR | Google ML Kit |
-| Notifications | flutter_local_notifications |
-| Charts | fl_chart |
-| Text-to-Speech | flutter_tts |
-| Voice Input | speech_to_text |
-| AI Recipes | Gemini API |
+1. **250-Line File Limit**:
+   - No `.dart` source file should exceed **250 lines**.
+   - If any widget, screen, or logic file exceeds 250 lines, refactor it into dedicated helper widgets, modals, sub-components, or delegate files.
+
+2. **Ultra-Clean `build()` Method Standard**:
+   - The `build()` method must contain concise, clean, high-level code listing only top-level layout containers.
+   - All sub-views, section builders, modal dialogs, and helper methods must be declared separately below the `build()` method under `// --- Private Sub-Widgets Defined Below Build Function ---`.
+
+3. **Reference Architecture Code Pattern**:
+   ```dart
+   class WelcomeScreen extends StatelessWidget {
+     const WelcomeScreen({super.key});
+
+     void _navigateToSignupScreen(BuildContext context) { ... }
+     void _navigateToLoginScreen(BuildContext context) { ... }
+
+     @override
+     Widget build(BuildContext context) {
+       return Scaffold(
+         backgroundColor: context.colors.background,
+         body: Column(
+           children: [
+             _buildCookingHeroBanner(context),
+             Expanded(
+               child: Padding(
+                 padding: AppSizes.paddingScreen,
+                 child: Column(
+                   children: [
+                     _buildCreateAccountActionButton(context),
+                     _buildGoogleSignInSocialButton(context),
+                     _buildOrDividerLine(context),
+                     _buildSignInExistingAccountButton(context),
+                     const Spacer(),
+                     _buildTermsAndPrivacyFooterText(context),
+                   ],
+                 ),
+               ),
+             ),
+           ],
+         ),
+       );
+     }
+
+     // --- Private Sub-Widgets Defined Below Build Function ---
+
+     Widget _buildCookingHeroBanner(BuildContext context) { ... }
+     Widget _buildSmartPantryBrandBadge() { ... }
+     Widget _buildWelcomeHeadlineText() { ... }
+     Widget _buildCreateAccountActionButton(BuildContext context) { ... }
+     Widget _buildGoogleSignInSocialButton(BuildContext context) { ... }
+     Widget _buildOrDividerLine(BuildContext context) { ... }
+     Widget _buildSignInExistingAccountButton(BuildContext context) { ... }
+     Widget _buildTermsAndPrivacyFooterText(BuildContext context) { ... }
+   }
+   ```
+
+4. **Consistent Design System & Theme Adaptability**:
+   - Support both Light & Dark modes seamlessly across all screens.
+   - Use `AppGradients.primaryGradient` (`#166534 → #22C55E`) for all primary buttons and `AppColors.getRandomColor()` for harmonized dynamic accents.

@@ -29,7 +29,9 @@ abstract class AppTheme {
       textTheme: baseTextTheme.copyWith(
         displayLarge: AppTextStyles.displayLarge(color: AppColors.textPrimary),
         headlineLarge: AppTextStyles.headingLarge(color: AppColors.textPrimary),
-        headlineMedium: AppTextStyles.headingMedium(color: AppColors.textPrimary),
+        headlineMedium: AppTextStyles.headingMedium(
+          color: AppColors.textPrimary,
+        ),
         headlineSmall: AppTextStyles.headingSmall(color: AppColors.textPrimary),
         titleLarge: AppTextStyles.titleLarge(color: AppColors.textPrimary),
         titleMedium: AppTextStyles.titleMedium(color: AppColors.textPrimary),
@@ -52,7 +54,9 @@ abstract class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        titleTextStyle: AppTextStyles.headingSmall(color: AppColors.textPrimary),
+        titleTextStyle: AppTextStyles.headingSmall(
+          color: AppColors.textPrimary,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -73,7 +77,10 @@ abstract class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppSizes.borderMD,
-          borderSide: const BorderSide(color: AppColors.primaryGreen, width: 2.0),
+          borderSide: const BorderSide(
+            color: AppColors.primaryGreen,
+            width: 2.0,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppSizes.borderMD,
@@ -119,13 +126,25 @@ abstract class AppTheme {
         onError: Colors.white,
       ),
       textTheme: baseTextTheme.copyWith(
-        displayLarge: AppTextStyles.displayLarge(color: AppColors.darkTextPrimary),
-        headlineLarge: AppTextStyles.headingLarge(color: AppColors.darkTextPrimary),
-        headlineMedium: AppTextStyles.headingMedium(color: AppColors.darkTextPrimary),
-        headlineSmall: AppTextStyles.headingSmall(color: AppColors.darkTextPrimary),
+        displayLarge: AppTextStyles.displayLarge(
+          color: AppColors.darkTextPrimary,
+        ),
+        headlineLarge: AppTextStyles.headingLarge(
+          color: AppColors.darkTextPrimary,
+        ),
+        headlineMedium: AppTextStyles.headingMedium(
+          color: AppColors.darkTextPrimary,
+        ),
+        headlineSmall: AppTextStyles.headingSmall(
+          color: AppColors.darkTextPrimary,
+        ),
         titleLarge: AppTextStyles.titleLarge(color: AppColors.darkTextPrimary),
-        titleMedium: AppTextStyles.titleMedium(color: AppColors.darkTextPrimary),
-        titleSmall: AppTextStyles.titleSmall(color: AppColors.darkTextSecondary),
+        titleMedium: AppTextStyles.titleMedium(
+          color: AppColors.darkTextPrimary,
+        ),
+        titleSmall: AppTextStyles.titleSmall(
+          color: AppColors.darkTextSecondary,
+        ),
         bodyLarge: AppTextStyles.bodyLarge(color: AppColors.darkTextPrimary),
         bodyMedium: AppTextStyles.bodyMedium(color: AppColors.darkTextPrimary),
         bodySmall: AppTextStyles.bodySmall(color: AppColors.darkTextSecondary),
@@ -144,7 +163,9 @@ abstract class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(color: AppColors.darkTextPrimary),
-        titleTextStyle: AppTextStyles.headingSmall(color: AppColors.darkTextPrimary),
+        titleTextStyle: AppTextStyles.headingSmall(
+          color: AppColors.darkTextPrimary,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -154,7 +175,9 @@ abstract class AppTheme {
           vertical: AppSizes.p16,
         ),
         hintStyle: AppTextStyles.bodyMedium(color: AppColors.darkTextSecondary),
-        labelStyle: AppTextStyles.bodyMedium(color: AppColors.darkTextSecondary),
+        labelStyle: AppTextStyles.bodyMedium(
+          color: AppColors.darkTextSecondary,
+        ),
         border: OutlineInputBorder(
           borderRadius: AppSizes.borderMD,
           borderSide: const BorderSide(color: AppColors.darkBorder, width: 1.0),

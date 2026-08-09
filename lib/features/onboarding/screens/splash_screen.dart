@@ -28,17 +28,11 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutBack,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeIn,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
 
     _animationController.forward();
@@ -97,7 +91,9 @@ class _SplashScreenState extends State<SplashScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        AppColors.secondaryGreen.withValues(alpha: isDark ? 0.15 : 0.2),
+                        AppColors.secondaryGreen.withValues(
+                          alpha: isDark ? 0.15 : 0.2,
+                        ),
                         AppColors.primaryGreen.withValues(alpha: 0.0),
                       ],
                     ),
@@ -135,7 +131,9 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Text(
                       'ShelfChef AI',
                       style: AppTextStyles.displayLarge(
-                        color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ),
