@@ -1,17 +1,41 @@
-# shelf_chef
+# ShelfChef AI
 
-A new Flutter project.
+Smart pantry, grocery, and meal-planning mobile app. Manages food inventory, tracks expiry dates, scans grocery bills via OCR, suggests AI-powered recipes from ingredients on hand, tracks grocery budget/expenses, and reads recipes aloud via text-to-speech.
+
+📄 **Full project spec (screens, UI/UX, color system, user flows, features):**
+see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Flutter |
+| Auth | Firebase Auth |
+| Cloud DB | Firestore |
+| Local DB | SQLite |
+| OCR | Google ML Kit |
+| Notifications | flutter_local_notifications |
+| Charts | fl_chart |
+| Text-to-Speech | flutter_tts |
+| Voice Input | speech_to_text |
+| AI Recipes | Gemini API |
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Project Structure
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+shelfchef_ai/
+├── README.md                  # you are here
+├── docs/
+│   └── PROJECT_OVERVIEW.md    # full requirements & design spec
+├── lib/
+├── android/
+├── ios/
+└── pubspec.yaml
+```
