@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../models/user_profile_data.dart';
 import '../widgets/add_quick_modal.dart';
 import '../widgets/ai_recipe_card.dart';
 import '../widgets/alerts_modal.dart';
@@ -7,28 +8,56 @@ import '../widgets/budget_card.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/expiring_items_list.dart';
 import '../widgets/floating_navbar.dart';
-import '../widgets/profile_settings_modal.dart';
+import '../widgets/profile_drawer.dart';
 import '../widgets/spending_chart_card.dart';
+import 'initial_setup_screen.dart';
 
-/// Premium Ecosystem Dashboard for ShelfChef AI supporting both Light & Dark Theme
-/// based on docs/PROJECT_OVERVIEW.md specifications.
+/// Premium Ecosystem Dashboard for ShelfChef AI supporting both Light & Dark Theme.
 class DashboardScreen extends StatefulWidget {
   final String userName;
+  final bool showSetupOnLaunch;
 
-  const DashboardScreen({super.key, this.userName = 'Aanal'});
+  const DashboardScreen({
+    super.key,
+    this.userName = 'Aanal',
+    this.showSetupOnLaunch = true,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _currentTab = 0; // 0: Home, 1: Pantry, 3: Recipes, 4: Profile
-  late String _currentUserName;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int _currentTab = 0; // 0: Home, 1: Pantry, 3: Recipes, 4: Cart
+  late UserProfileData _userProfile;
 
   @override
   void initState() {
     super.initState();
-    _currentUserName = widget.userName;
+    _userProfile = UserProfileData(fullName: widget.userName);
+
+    if (widget.showSetupOnLaunch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openInitialSetupDialog();
+      });
+    }
+  }
+
+  void _openInitialSetupDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InitialSetupScreen(
+          initialData: _userProfile,
+          onSave: (updatedProfile) {
+            setState(() {
+              _userProfile = updatedProfile;
+            });
+          },
+        ),
+      ),
+    );
   }
 
   void _handleTabTap(int index) {
@@ -39,18 +68,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _openAddModal() => AddQuickModal.show(context);
 
-  void _openAlertsModal() => AlertsModal.show(context);
+  void _openAlertsDialog() => AlertsDialog.show(context);
 
-  void _openProfileSettings() {
-    ProfileSettingsModal.show(
-      context,
-      userName: _currentUserName,
-      onSave: (newName) {
-        setState(() {
-          _currentUserName = newName;
-        });
-      },
-    );
+  void _openProfileDrawer() {
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   @override
@@ -59,7 +80,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      endDrawer: ProfileDrawer(
+        userProfile: _userProfile,
+        onSave: (updatedProfile) {
+          setState(() {
+            _userProfile = updatedProfile;
+          });
+        },
+      ),
       body: Stack(
         children: [
           // Top Ambient Background Glow Gradients
@@ -82,25 +112,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
 
-          // Main Screen Views
+          // Main Screen Views using original placeholder view layout with updated empty state text
           IndexedStack(
             index: _currentTab == 2 ? 0 : _currentTab,
             children: [
               _buildHomeDashboardView(isDark),
               _buildPlaceholderView(
-                'Pantry Inventory',
+                'Your Pantry is Empty',
+                'Scan receipts or add items to track pantry waste',
                 Icons.inventory_2_rounded,
                 isDark,
               ),
               const SizedBox(), // Index 2 reserved for FAB modal
               _buildPlaceholderView(
-                'AI Recipe Hub',
+                'No Recipe Suggestions Yet',
+                'Add pantry ingredients to get AI zero-waste recipes',
                 Icons.auto_awesome_rounded,
                 isDark,
               ),
               _buildPlaceholderView(
-                'User Profile & Settings',
-                Icons.person_rounded,
+                'Your Shopping List is Empty',
+                'Low stock items will automatically appear here',
+                Icons.shopping_cart_rounded,
                 isDark,
               ),
             ],
@@ -139,12 +172,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardHeader(
-              userName: _currentUserName,
-              onOpenAlerts: _openAlertsModal,
-              onOpenProfile: _openProfileSettings,
+              userName: _userProfile.fullName,
+              imagePath: _userProfile.imagePath,
+              avatarEmoji: _userProfile.avatarEmoji,
+              onOpenAlerts: _openAlertsDialog,
+              onOpenProfile: _openProfileDrawer,
             ),
             const SizedBox(height: 24),
-            const BudgetCard(),
+            BudgetCard(totalBudget: _userProfile.monthlyBudget),
             const SizedBox(height: 24),
             const ExpiringItemsList(),
             const SizedBox(height: 24),
@@ -157,8 +192,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Placeholder view for Pantry, Recipes, Profile tabs
-  Widget _buildPlaceholderView(String title, IconData icon, bool isDark) {
+  /// Original Placeholder view layout with updated empty state text
+  Widget _buildPlaceholderView(
+    String title,
+    String subtitle,
+    IconData icon,
+    bool isDark,
+  ) {
     final primaryTextColor = isDark
         ? AppColors.darkTextPrimary
         : AppColors.textPrimary;
@@ -185,13 +225,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title,
               style: TextStyle(
                 color: primaryTextColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Interactive Module Active',
+              subtitle,
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
             ),
           ],

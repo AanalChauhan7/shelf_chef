@@ -18,6 +18,8 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   late int _selectedTab;
+  final GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _signupFormKey = GlobalKey<FormState>();
 
   final TextEditingController _loginEmailController = TextEditingController();
   final TextEditingController _loginPasswordController =
@@ -58,23 +60,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _handleLogin() => _navigateToDashboard();
 
-  void _handleSignup() {
-    if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Please accept Terms of Service & Privacy Policy',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      return;
-    }
-    _navigateToDashboard();
-  }
+  void _handleSignup() => _navigateToDashboard();
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +141,7 @@ class _AuthScreenState extends State<AuthScreen> {
       switchOutCurve: Curves.easeInOut,
       child: _selectedTab == 0
           ? LoginForm(
+              formKey: _loginFormKey,
               emailController: _loginEmailController,
               passwordController: _loginPasswordController,
               rememberMe: _rememberMe,
@@ -163,6 +150,7 @@ class _AuthScreenState extends State<AuthScreen> {
               onSubmit: _handleLogin,
             )
           : SignupForm(
+              formKey: _signupFormKey,
               nameController: _signupNameController,
               emailController: _signupEmailController,
               passwordController: _signupPasswordController,

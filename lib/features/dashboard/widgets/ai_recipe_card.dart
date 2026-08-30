@@ -10,22 +10,11 @@ class AiRecipeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
+    final primaryTextColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
 
     final aiPurple = isDark ? AppColors.darkAiPurple : AppColors.aiPurple;
-    final emeraldAccent = isDark
-        ? AppColors.darkAccent
-        : AppColors.primaryGreen;
-
-    final cardBgColor = isDark
-        ? const Color(0xCC1E293B)
-        : const Color(0xF2FFFFFF);
-    final borderColor = aiPurple.withValues(alpha: isDark ? 0.35 : 0.25);
+    final emeraldAccent = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -34,31 +23,18 @@ class AiRecipeCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: cardBgColor,
+            color: isDark ? const Color(0xCC1E293B) : const Color(0xF2FFFFFF),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: borderColor, width: 1.2),
+            border: Border.all(color: aiPurple.withValues(alpha: isDark ? 0.35 : 0.25), width: 1.2),
             boxShadow: [
-              BoxShadow(
-                color: aiPurple.withValues(alpha: 0.15),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
+              BoxShadow(color: aiPurple.withValues(alpha: 0.15), blurRadius: 20, spreadRadius: 2),
+              BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06), blurRadius: 16, offset: const Offset(0, 6)),
             ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeaderSection(
-                aiPurple,
-                emeraldAccent,
-                primaryTextColor,
-                secondaryTextColor,
-              ),
+              _buildHeaderSection(aiPurple, emeraldAccent, primaryTextColor, secondaryTextColor),
               const SizedBox(height: 16),
               _buildBadgesSection(aiPurple, emeraldAccent),
               const SizedBox(height: 18),
@@ -72,12 +48,7 @@ class AiRecipeCard extends StatelessWidget {
 
   // --- Private Sub-Widgets Defined Below Build Function ---
 
-  Widget _buildHeaderSection(
-    Color aiPurple,
-    Color emeraldAccent,
-    Color primaryTextColor,
-    Color secondaryTextColor,
-  ) {
+  Widget _buildHeaderSection(Color aiPurple, Color emeraldAccent, Color primaryTextColor, Color secondaryTextColor) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -86,27 +57,17 @@ class AiRecipeCard extends StatelessWidget {
           height: 72,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: aiPurple.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: aiPurple.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: Image.asset(
               'assets/images/onboarding_recipe.jpg',
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: aiPurple.withValues(alpha: 0.2),
-                  child: const Center(
-                    child: Text('🍝', style: TextStyle(fontSize: 32)),
-                  ),
-                );
-              },
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: aiPurple.withValues(alpha: 0.2),
+                child: const Center(child: Text('🍝', style: TextStyle(fontSize: 32))),
+              ),
             ),
           ),
         ),
@@ -116,22 +77,11 @@ class AiRecipeCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      aiPurple.withValues(alpha: 0.2),
-                      emeraldAccent.withValues(alpha: 0.15),
-                    ],
-                  ),
+                  gradient: LinearGradient(colors: [aiPurple.withValues(alpha: 0.2), emeraldAccent.withValues(alpha: 0.15)]),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: aiPurple.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
+                  border: Border.all(color: aiPurple.withValues(alpha: 0.4), width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -139,40 +89,15 @@ class AiRecipeCard extends StatelessWidget {
                     Icon(Icons.auto_awesome, size: 13, color: aiPurple),
                     const SizedBox(width: 5),
                     Flexible(
-                      child: Text(
-                        'AI RECIPE • 98% MATCH',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: aiPurple,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
+                      child: Text('AI RECIPE • 98% MATCH', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: aiPurple, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                'Avocado & Garlic Pasta',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: primaryTextColor,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
-              ),
+              Text('Avocado & Garlic Pasta', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: primaryTextColor, fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
               const SizedBox(height: 2),
-              Text(
-                'Quick 15-min gourmet meal',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodySmall(color: secondaryTextColor),
-              ),
+              Text('Quick 15-min gourmet meal', maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTextStyles.bodySmall(color: secondaryTextColor)),
             ],
           ),
         ),
@@ -199,34 +124,19 @@ class AiRecipeCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: AppGradients.primaryGradient,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondaryGreen.withValues(alpha: 0.45),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.secondaryGreen.withValues(alpha: 0.45), blurRadius: 14, offset: const Offset(0, 4))],
       ),
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Start Cooking Mode',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            Text('Start Cooking Mode', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
             SizedBox(width: 8),
             Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
           ],
@@ -243,14 +153,7 @@ class AiRecipeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }

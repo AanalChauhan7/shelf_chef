@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
-/// Clean Log In Form component for AuthScreen.
+/// Clean Log In Form component for AuthScreen with Form Validation.
 class LoginForm extends StatelessWidget {
+  final GlobalKey<FormState> formKey;
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool rememberMe;
@@ -11,6 +12,7 @@ class LoginForm extends StatelessWidget {
 
   const LoginForm({
     super.key,
+    required this.formKey,
     required this.emailController,
     required this.passwordController,
     required this.rememberMe,
@@ -24,77 +26,86 @@ class LoginForm extends StatelessWidget {
 
     return KeyedSubtree(
       key: const ValueKey('login_form'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppTextField(
-            label: 'Email or Username',
-            hint: 'alex@kitchen.com',
-            controller: emailController,
-            keyboardType: TextInputType.emailAddress,
-            prefixIcon: Icons.mail_outline_rounded,
-          ),
-          const SizedBox(height: AppSizes.p16),
-          AppTextField(
-            label: 'Password',
-            hint: '••••••••',
-            controller: passwordController,
-            isPassword: true,
-            prefixIcon: Icons.lock_outline_rounded,
-          ),
-          const SizedBox(height: AppSizes.p12),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppTextField(
+              label: 'Email Address',
+              hint: 'alex@kitchen.com',
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: Icons.mail_outline_rounded,
+              validator: AppValidators.validateEmail,
+            ),
+            const SizedBox(height: AppSizes.p16),
+            AppTextField(
+              label: 'Password',
+              hint: '••••••••',
+              controller: passwordController,
+              isPassword: true,
+              prefixIcon: Icons.lock_outline_rounded,
+              validator: AppValidators.validatePassword,
+            ),
+            const SizedBox(height: AppSizes.p12),
 
-          // Remember me & Forgot password
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: rememberMe,
-                      onChanged: onRememberMeChanged,
-                      activeColor: isDark
-                          ? AppColors.darkAccent
-                          : AppColors.primaryGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
+            // Remember me & Forgot password
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: rememberMe,
+                        onChanged: onRememberMeChanged,
+                        activeColor: isDark
+                            ? AppColors.darkAccent
+                            : AppColors.primaryGreen,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: AppSizes.p8),
-                  Text(
-                    'Remember me',
+                    const SizedBox(width: AppSizes.p8),
+                    Text(
+                      'Remember me',
+                      style: AppTextStyles.bodyMedium(
+                        color: isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: Text(
+                    'Forgot?',
                     style: AppTextStyles.bodyMedium(
                       color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.textSecondary,
-                    ),
+                          ? AppColors.darkAccent
+                          : AppColors.primaryGreen,
+                    ).copyWith(fontWeight: FontWeight.w600),
                   ),
-                ],
-              ),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  'Forgot?',
-                  style: AppTextStyles.bodyMedium(
-                    color: isDark
-                        ? AppColors.darkAccent
-                        : AppColors.primaryGreen,
-                  ).copyWith(fontWeight: FontWeight.w600),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.p20),
-          AppButton(
-            text: 'Log In',
-            icon: Icons.arrow_forward_rounded,
-            onPressed: onSubmit,
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: AppSizes.p20),
+            AppButton(
+              text: 'Log In',
+              icon: Icons.arrow_forward_rounded,
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  onSubmit();
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

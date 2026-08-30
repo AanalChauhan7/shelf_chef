@@ -5,20 +5,21 @@ import 'allergies_picker_section.dart';
 import 'avatar_picker_row.dart';
 import 'profile_form_fields.dart';
 
-/// Modal sheet allowing user to edit full profile info & preferences anytime.
-class ProfileSettingsModal extends StatefulWidget {
-  final UserProfileData userProfile;
+/// Initial Onboarding Setup Dialog opened upon login.
+/// All fields are optional and can be skipped or edited later in Profile Settings.
+class InitialSetupDialog extends StatefulWidget {
+  final UserProfileData initialData;
   final ValueChanged<UserProfileData> onSave;
 
-  const ProfileSettingsModal({
+  const InitialSetupDialog({
     super.key,
-    required this.userProfile,
+    required this.initialData,
     required this.onSave,
   });
 
   static void show(
     BuildContext context, {
-    required UserProfileData userProfile,
+    required UserProfileData initialData,
     required ValueChanged<UserProfileData> onSave,
   }) {
     showModalBottomSheet(
@@ -29,16 +30,16 @@ class ProfileSettingsModal extends StatefulWidget {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: ProfileSettingsModal(userProfile: userProfile, onSave: onSave),
+        child: InitialSetupDialog(initialData: initialData, onSave: onSave),
       ),
     );
   }
 
   @override
-  State<ProfileSettingsModal> createState() => _ProfileSettingsModalState();
+  State<InitialSetupDialog> createState() => _InitialSetupDialogState();
 }
 
-class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
+class _InitialSetupDialogState extends State<InitialSetupDialog> {
   late TextEditingController _nameController;
   late TextEditingController _budgetController;
   late String _selectedAvatar;
@@ -58,13 +59,13 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.userProfile.fullName);
+    _nameController = TextEditingController(text: widget.initialData.fullName);
     _budgetController = TextEditingController(
-      text: widget.userProfile.monthlyBudget.toStringAsFixed(0),
+      text: widget.initialData.monthlyBudget.toStringAsFixed(0),
     );
-    _selectedAvatar = widget.userProfile.avatarEmoji;
-    _familyMembers = widget.userProfile.familyMembers;
-    _selectedAllergies = List.from(widget.userProfile.allergies);
+    _selectedAvatar = widget.initialData.avatarEmoji;
+    _familyMembers = widget.initialData.familyMembers;
+    _selectedAllergies = List.from(widget.initialData.allergies);
   }
 
   @override
@@ -90,12 +91,6 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
 
     widget.onSave(updated);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Profile preferences updated successfully!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
@@ -123,12 +118,12 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildModalHandle(isDark),
+            _buildModalHeaderHandle(isDark),
             const SizedBox(height: 16),
-            _buildHeader(primaryTextColor, secondaryTextColor),
+            _buildDialogTitle(primaryTextColor, secondaryTextColor),
             const SizedBox(height: 20),
             Text(
-              'Profile Photo / Avatar',
+              'Choose Profile Photo / Avatar',
               style: AppTextStyles.bodySmall(color: secondaryTextColor),
             ),
             const SizedBox(height: 10),
@@ -137,7 +132,10 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
               onSelect: (emoji) => setState(() => _selectedAvatar = emoji),
             ),
             const SizedBox(height: 20),
-            FullNameInputField(controller: _nameController, label: 'Full Name'),
+            FullNameInputField(
+              controller: _nameController,
+              label: 'Full Name (Optional)',
+            ),
             const SizedBox(height: 18),
             FamilyMembersCounterRow(
               count: _familyMembers,
@@ -156,7 +154,7 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
                   setState(() => _selectedAllergies = updated),
             ),
             const SizedBox(height: 24),
-            _buildSaveButton(),
+            _buildActionButtons(context),
             const SizedBox(height: 12),
           ],
         ),
@@ -166,7 +164,7 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
 
   // --- Private Sub-Widgets Defined Below Build Function ---
 
-  Widget _buildModalHandle(bool isDark) {
+  Widget _buildModalHeaderHandle(bool isDark) {
     return Center(
       child: Container(
         width: 40,
@@ -179,51 +177,52 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
     );
   }
 
-  Widget _buildHeader(Color primaryTextColor, Color secondaryTextColor) {
-    return Row(
+  Widget _buildDialogTitle(Color primaryTextColor, Color secondaryTextColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color(0x2210B981),
-          ),
-          child: Center(
-            child: Text(_selectedAvatar, style: const TextStyle(fontSize: 24)),
-          ),
+        Text(
+          'Welcome to ShelfChef AI! 🎉',
+          style: AppTextStyles.headingSmall(color: primaryTextColor),
         ),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'User Profile Settings',
-              style: AppTextStyles.headingSmall(color: primaryTextColor),
-            ),
-            Text(
-              'Edit name, avatar, family size, budget & allergies',
-              style: AppTextStyles.bodySmall(color: secondaryTextColor),
-            ),
-          ],
+        const SizedBox(height: 4),
+        Text(
+          'Customize your kitchen preferences (Optional, can edit anytime in profile settings).',
+          style: AppTextStyles.bodySmall(color: secondaryTextColor),
         ),
       ],
     );
   }
 
-  Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _handleSave,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+  Widget _buildActionButtons(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text('Skip for Now'),
           ),
         ),
-        child: const Text('Save Profile Changes'),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _handleSave,
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text('Save & Continue'),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -85,8 +85,13 @@ class FloatingNavbar extends StatelessWidget {
                       Icons.auto_awesome_rounded,
                       'Recipes',
                     ),
-                    // Index 4: Profile
-                    _buildNavItem(context, 4, Icons.person_rounded, 'Profile'),
+                    // Index 4: Shopping Cart
+                    _buildNavItem(
+                      context,
+                      4,
+                      Icons.shopping_cart_rounded,
+                      'Cart',
+                    ),
                   ],
                 ),
               ),

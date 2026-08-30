@@ -8,6 +8,9 @@ export 'constants/app_text_styles.dart';
 // Core Theme Export
 export 'theme/app_theme.dart';
 
+// Core Utilities Export
+export 'utils/app_validators.dart';
+
 // Custom Common Widgets Exports
 export '../widgets/glass_container.dart';
 export '../widgets/app_button.dart';

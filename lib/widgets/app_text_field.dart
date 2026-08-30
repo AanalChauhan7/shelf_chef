@@ -159,6 +159,13 @@ class _AppTextFieldState extends State<AppTextField> {
                       },
                     )
                   : widget.suffixIcon,
+              errorStyle: const TextStyle(
+                color: AppColors.dangerRed,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+              errorMaxLines: 2,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: defaultBorder, width: 1.2),
@@ -176,6 +183,13 @@ class _AppTextFieldState extends State<AppTextField> {
                 borderSide: const BorderSide(
                   color: AppColors.dangerRed,
                   width: 1.5,
+                ),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AppColors.dangerRed,
+                  width: 1.8,
                 ),
               ),
             ),
