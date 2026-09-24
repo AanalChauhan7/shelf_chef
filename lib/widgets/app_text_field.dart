@@ -3,7 +3,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_sizes.dart';
 import '../core/constants/app_text_styles.dart';
 
-/// Reusable custom text field widget with sleek focus animations and clean styling.
+/// Reusable custom text field widget with sleek focus animations and keyboard actions.
 class AppTextField extends StatefulWidget {
   final String? label;
   final String? hint;
@@ -18,6 +18,8 @@ class AppTextField extends StatefulWidget {
   final VoidCallback? onTap;
   final int maxLines;
   final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const AppTextField({
     super.key,
@@ -34,6 +36,8 @@ class AppTextField extends StatefulWidget {
     this.onTap,
     this.maxLines = 1,
     this.focusNode,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -126,6 +130,8 @@ class _AppTextFieldState extends State<AppTextField> {
             readOnly: widget.readOnly,
             onTap: widget.onTap,
             maxLines: widget.isPassword ? 1 : widget.maxLines,
+            textInputAction: widget.textInputAction,
+            onFieldSubmitted: widget.onFieldSubmitted,
             style: AppTextStyles.bodyMedium(color: primaryTextColor),
             decoration: InputDecoration(
               hintText: widget.hint,

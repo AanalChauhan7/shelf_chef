@@ -1,9 +1,12 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../models/pantry_item.dart';
+import 'pantry_header_banner.dart';
+import 'pantry_item_card.dart';
+import 'pantry_quick_actions_bar.dart';
 
-/// Premium glassmorphic empty state view for Pantry Inventory tab.
-class PantryEmptyView extends StatelessWidget {
+/// Professional Pantry Inventory Screen matching the dashboard ecosystem styling.
+class PantryEmptyView extends StatefulWidget {
   final VoidCallback onScanReceipt;
   final VoidCallback onAddItemManually;
 
@@ -14,6 +17,76 @@ class PantryEmptyView extends StatelessWidget {
   });
 
   @override
+  State<PantryEmptyView> createState() => _PantryEmptyViewState();
+}
+
+class _PantryEmptyViewState extends State<PantryEmptyView> {
+  String _selectedCategory = 'All';
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<PantryItem> _samplePantryItems = [
+    PantryItem(
+      id: '1',
+      name: 'Fresh Tomatoes',
+      category: 'Vegetables',
+      quantity: '1.5',
+      unit: 'kg',
+      storageLocation: 'Fridge',
+      expiryDate: DateTime.now().add(const Duration(days: 2)),
+    ),
+    PantryItem(
+      id: '2',
+      name: 'Besan / Gram Flour',
+      category: 'Grains & Pulses',
+      quantity: '500',
+      unit: 'g',
+      storageLocation: 'Pantry',
+      expiryDate: DateTime.now().add(const Duration(days: 45)),
+    ),
+    PantryItem(
+      id: '3',
+      name: 'Amul Taaza Milk',
+      category: 'Dairy',
+      quantity: '1',
+      unit: 'L',
+      storageLocation: 'Fridge',
+      expiryDate: DateTime.now().add(const Duration(days: 1)),
+    ),
+    PantryItem(
+      id: '4',
+      name: 'Pure Desi Ghee',
+      category: 'Dairy',
+      quantity: '500',
+      unit: 'ml',
+      storageLocation: 'Pantry',
+      expiryDate: DateTime.now().add(const Duration(days: 90)),
+    ),
+    PantryItem(
+      id: '5',
+      name: 'Ratlami Sev',
+      category: 'Snacks',
+      quantity: '200',
+      unit: 'g',
+      storageLocation: 'Pantry',
+      expiryDate: DateTime.now().add(const Duration(days: 20)),
+    ),
+  ];
+
+  final List<Map<String, dynamic>> _categories = const [
+    {'name': 'All', 'icon': Icons.grid_view_rounded},
+    {'name': 'Vegetables', 'icon': Icons.eco_rounded},
+    {'name': 'Dairy', 'icon': Icons.local_drink_rounded},
+    {'name': 'Grains & Pulses', 'icon': Icons.grain_rounded},
+    {'name': 'Snacks', 'icon': Icons.fastfood_rounded},
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = isDark
@@ -22,117 +95,139 @@ class PantryEmptyView extends StatelessWidget {
     final secondaryTextColor = isDark
         ? AppColors.darkTextSecondary
         : AppColors.textSecondary;
-    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
+
+    final filteredItems = _samplePantryItems.where((item) {
+      final matchesCategory =
+          _selectedCategory == 'All' || item.category == _selectedCategory;
+      final query = _searchController.text.trim().toLowerCase();
+      final matchesQuery =
+          query.isEmpty || item.name.toLowerCase().contains(query);
+      return matchesCategory && matchesQuery;
+    }).toList();
 
     return SafeArea(
-      child: Center(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildGlassIllustration(isDark, activeColor),
-              const SizedBox(height: 24),
-              Text(
-                'Your Pantry is Empty',
-                style: TextStyle(
-                  color: primaryTextColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Scan your grocery receipt or add items manually to start tracking expiration dates & AI waste prevention.',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium(
-                    color: secondaryTextColor,
-                  ).copyWith(height: 1.4),
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildActionButtons(context),
-            ],
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: 110,
+        ),
+        children: [
+          PantryHeaderBanner(
+            totalItemsCount: _samplePantryItems.length,
+            expiringSoonCount: 2,
+          ),
+          const SizedBox(height: 18),
+          PantryQuickActionsBar(
+            onScanReceipt: widget.onScanReceipt,
+            onAddItemManually: widget.onAddItemManually,
+          ),
+          const SizedBox(height: 18),
+          _buildSearchBar(isDark, primaryTextColor, secondaryTextColor),
+          const SizedBox(height: 14),
+          _buildCategoryFilterRow(isDark, primaryTextColor),
+          const SizedBox(height: 16),
+          if (filteredItems.isEmpty)
+            _buildEmptyState(primaryTextColor, secondaryTextColor)
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredItems.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                return PantryItemCard(
+                  item: filteredItems[index],
+                  isDark: isDark,
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(bool isDark, Color textColor, Color hintColor) {
+    return TextField(
+      controller: _searchController,
+      onChanged: (_) => setState(() {}),
+      style: TextStyle(color: textColor, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: 'Search inventory by item or category...',
+        hintStyle: TextStyle(
+          color: hintColor.withValues(alpha: 0.6),
+          fontSize: 13,
+        ),
+        prefixIcon: Icon(Icons.search_rounded, color: hintColor, size: 20),
+        filled: true,
+        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: isDark ? AppColors.darkBorder : AppColors.border,
           ),
         ),
       ),
     );
   }
 
-  // --- Private Sub-Widgets Defined Below Build Function ---
-
-  Widget _buildGlassIllustration(bool isDark, Color activeColor) {
-    final cardBg = isDark ? const Color(0xCC1E293B) : const Color(0xF2FFFFFF);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          width: 140,
-          height: 140,
-          decoration: BoxDecoration(
-            color: cardBg,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: activeColor.withValues(alpha: 0.3),
-              width: 1.5,
+  Widget _buildCategoryFilterRow(bool isDark, Color textColor) {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _categories.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final cat = _categories[index];
+          final String catName = cat['name'] as String;
+          final isSel = _selectedCategory == catName;
+          return ChoiceChip(
+            avatar: Icon(
+              cat['icon'] as IconData,
+              size: 14,
+              color: isSel ? Colors.white : textColor,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: activeColor.withValues(alpha: 0.2),
-                blurRadius: 28,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-          child: Center(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(Icons.inventory_2_outlined, size: 56, color: activeColor),
-                Positioned(
-                  bottom: 24,
-                  right: 24,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningOrange,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.add_rounded,
-                      size: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+            label: Text(catName),
+            selected: isSel,
+            selectedColor: isDark
+                ? AppColors.darkAccent
+                : AppColors.primaryGreen,
+            labelStyle: TextStyle(
+              color: isSel ? Colors.white : textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
-          ),
-        ),
+            onSelected: (_) => setState(() => _selectedCategory = catName),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
-    return Column(
-      children: [
-        AppButton.ai(
-          text: 'Scan Grocery Receipt',
-          onPressed: onScanReceipt,
-          icon: Icons.qr_code_scanner_rounded,
-        ),
-        const SizedBox(height: 12),
-        AppButton.secondary(
-          text: '+ Add Item Manually',
-          onPressed: onAddItemManually,
-        ),
-      ],
+  Widget _buildEmptyState(Color textColor, Color secondaryColor) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          Icon(Icons.search_off_rounded, size: 48, color: secondaryColor),
+          const SizedBox(height: 12),
+          Text(
+            'No matching pantry items found',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
-/// Clean Sign Up Form component for AuthScreen with Form Validation.
-class SignupForm extends StatelessWidget {
+/// Clean Sign Up Form component for AuthScreen with Form Validation & Enter key submission.
+class SignupForm extends StatefulWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController nameController;
   final TextEditingController emailController;
@@ -23,44 +23,86 @@ class SignupForm extends StatelessWidget {
   });
 
   @override
+  State<SignupForm> createState() => _SignupFormState();
+}
+
+class _SignupFormState extends State<SignupForm> {
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _submitForm() {
+    if (widget.formKey.currentState?.validate() ?? false) {
+      if (!widget.acceptTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please accept Terms of Service & Privacy Policy to continue',
+            ),
+            backgroundColor: AppColors.dangerRed,
+          ),
+        );
+        return;
+      }
+      widget.onSubmit();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return KeyedSubtree(
       key: const ValueKey('signup_form'),
       child: Form(
-        key: formKey,
+        key: widget.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppTextField(
               label: 'Full Name',
               hint: 'Chef Alex',
-              controller: nameController,
+              controller: widget.nameController,
               prefixIcon: Icons.person_outline_rounded,
               validator: AppValidators.validateFullName,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_emailFocusNode);
+              },
             ),
             const SizedBox(height: AppSizes.p16),
             AppTextField(
               label: 'Email Address',
               hint: 'alex@kitchen.com',
-              controller: emailController,
+              controller: widget.emailController,
               keyboardType: TextInputType.emailAddress,
               prefixIcon: Icons.mail_outline_rounded,
               validator: AppValidators.validateEmail,
+              focusNode: _emailFocusNode,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocusNode);
+              },
             ),
             const SizedBox(height: AppSizes.p16),
             AppTextField(
               label: 'Password',
               hint: 'Min 6 chars with 1 special char (e.g. @,#,\$)',
-              controller: passwordController,
+              controller: widget.passwordController,
               isPassword: true,
               prefixIcon: Icons.lock_outline_rounded,
               validator: AppValidators.validatePassword,
+              focusNode: _passwordFocusNode,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _submitForm(),
             ),
             const SizedBox(height: AppSizes.p12),
-
-            // Terms Checkbox
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -68,8 +110,8 @@ class SignupForm extends StatelessWidget {
                   width: 24,
                   height: 24,
                   child: Checkbox(
-                    value: acceptTerms,
-                    onChanged: onAcceptTermsChanged,
+                    value: widget.acceptTerms,
+                    onChanged: widget.onAcceptTermsChanged,
                     activeColor: isDark
                         ? AppColors.darkAccent
                         : AppColors.primaryGreen,
@@ -95,22 +137,7 @@ class SignupForm extends StatelessWidget {
             AppButton(
               text: 'Create Account',
               icon: Icons.check_circle_outline_rounded,
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  if (!acceptTerms) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Please accept Terms of Service & Privacy Policy to continue',
-                        ),
-                        backgroundColor: AppColors.dangerRed,
-                      ),
-                    );
-                    return;
-                  }
-                  onSubmit();
-                }
-              },
+              onPressed: _submitForm,
             ),
           ],
         ),

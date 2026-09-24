@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/core.dart';
@@ -20,6 +21,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _budgetController;
+  final FocusNode _budgetFocusNode = FocusNode();
   late int _familyMembers;
   late List<String> _selectedAllergies;
   String? _imagePath;
@@ -50,17 +52,27 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   void dispose() {
     _nameController.dispose();
     _budgetController.dispose();
+    _budgetFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _imagePath = image.path);
+    try {
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() => _imagePath = image.path);
+      }
+    } catch (e) {
+      if (kDebugMode) print('Image pick note: $e');
     }
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState?.validate() ?? true) {
       final budget = double.tryParse(_budgetController.text.trim()) ?? 6000.0;
       final updated = widget.userProfile.copyWith(
@@ -72,6 +84,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         monthlyBudget: budget,
         allergies: _selectedAllergies,
       );
+
+      if (AuthService.currentUser != null) {
+        await AuthService.updateUserProfile(updated);
+      } else {
+        await GuestStorageService.saveGuestProfile(updated);
+      }
+
+      if (!mounted) return;
       Navigator.pop(context, updated);
     }
   }
@@ -122,7 +142,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   isDark: isDark,
                 ),
                 const SizedBox(height: 20),
-                FullNameInputField(controller: _nameController),
+                FullNameInputField(
+                  controller: _nameController,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) {
+                    FocusScope.of(context).requestFocus(_budgetFocusNode);
+                  },
+                ),
                 const SizedBox(height: 16),
                 FamilyMembersCounterRow(
                   count: _familyMembers,
@@ -132,7 +158,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   onIncrement: () => setState(() => _familyMembers++),
                 ),
                 const SizedBox(height: 16),
-                MonthlyBudgetInputField(controller: _budgetController),
+                MonthlyBudgetInputField(
+                  controller: _budgetController,
+                  focusNode: _budgetFocusNode,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _saveProfile(),
+                ),
                 const SizedBox(height: 20),
                 AllergiesPickerSection(
                   availableAllergies: _availableAllergies,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// Soft realistic shadows for Premium Eco-Glass UI.
+/// Clean realistic shadows for Matte Eco-Glass UI without heavy neon glows.
 abstract class AppShadows {
   /// Subtle elevation shadow for light cards
   static const List<BoxShadow> cardShadow = [
     BoxShadow(
       color: Color(0x0A000000), // 4% black shadow
-      blurRadius: 16,
+      blurRadius: 12,
       spreadRadius: 0,
       offset: Offset(0, 4),
     ),
@@ -18,43 +18,43 @@ abstract class AppShadows {
     ),
   ];
 
-  /// Glowing shadow for active green buttons / navigation
+  /// Soft shadow for active green buttons / navigation
   static const List<BoxShadow> primaryGlow = [
     BoxShadow(
-      color: Color(0x3322C55E), // 20% green glow
-      blurRadius: 20,
-      spreadRadius: 2,
-      offset: Offset(0, 8),
+      color: Color(0x1F10B981), // 12% subtle emerald shadow
+      blurRadius: 10,
+      spreadRadius: 0,
+      offset: Offset(0, 4),
     ),
   ];
 
-  /// Glowing shadow for AI Sparkle actions
+  /// Soft shadow for AI Sparkle actions
   static const List<BoxShadow> aiGlow = [
     BoxShadow(
-      color: Color(0x408B5CF6), // 25% purple glow
-      blurRadius: 20,
-      spreadRadius: 2,
-      offset: Offset(0, 8),
+      color: Color(0x1F8B5CF6), // 12% soft purple shadow
+      blurRadius: 10,
+      spreadRadius: 0,
+      offset: Offset(0, 4),
     ),
   ];
 
   /// Floating navbar shadow
   static const List<BoxShadow> navBarShadow = [
     BoxShadow(
-      color: Color(0x12000000), // 7% shadow
-      blurRadius: 24,
+      color: Color(0x1F000000), // 12% dark shadow
+      blurRadius: 16,
       spreadRadius: 0,
-      offset: Offset(0, 8),
+      offset: Offset(0, 6),
     ),
   ];
 
   /// Dark mode subtle shadow
   static const List<BoxShadow> darkCardShadow = [
     BoxShadow(
-      color: Color(0x33000000), // 20% black shadow
-      blurRadius: 16,
+      color: Color(0x40000000), // 25% clean black shadow
+      blurRadius: 12,
       spreadRadius: 0,
-      offset: Offset(0, 6),
+      offset: Offset(0, 4),
     ),
   ];
 }

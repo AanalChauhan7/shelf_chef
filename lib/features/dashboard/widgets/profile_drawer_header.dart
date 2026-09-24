@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
@@ -27,8 +28,46 @@ class ProfileDrawerHeader extends StatelessWidget {
         : AppColors.textSecondary;
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
-    final hasPhoto = imagePath != null && File(imagePath!).existsSync();
+    final hasPhoto =
+        imagePath != null &&
+        imagePath!.isNotEmpty &&
+        (kIsWeb ||
+            imagePath!.startsWith('blob:') ||
+            imagePath!.startsWith('http://') ||
+            imagePath!.startsWith('https://') ||
+            imagePath!.startsWith('data:') ||
+            File(imagePath!).existsSync());
     final initialText = fullName.isNotEmpty ? fullName[0].toUpperCase() : 'A';
+
+    final fallback = Center(
+      child: Text(
+        initialText,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 26,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+
+    Widget photoWidget() {
+      if (kIsWeb ||
+          imagePath!.startsWith('blob:') ||
+          imagePath!.startsWith('http://') ||
+          imagePath!.startsWith('https://') ||
+          imagePath!.startsWith('data:')) {
+        return Image.network(
+          imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallback,
+        );
+      }
+      return Image.file(
+        File(imagePath!),
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
@@ -46,20 +85,7 @@ class ProfileDrawerHeader extends StatelessWidget {
                     gradient: AppGradients.primaryGradient,
                     border: Border.all(color: activeColor, width: 2),
                   ),
-                  child: ClipOval(
-                    child: hasPhoto
-                        ? Image.file(File(imagePath!), fit: BoxFit.cover)
-                        : Center(
-                            child: Text(
-                              initialText,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                  ),
+                  child: ClipOval(child: hasPhoto ? photoWidget() : fallback),
                 ),
                 Positioned(
                   bottom: 0,

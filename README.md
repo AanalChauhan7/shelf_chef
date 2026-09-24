@@ -67,11 +67,16 @@ see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)
    - Always support both Light and Dark themes dynamically.
    - Use `AppGradients.primaryGradient` for all primary button actions and `AppColors.getRandomColor()` for harmonized dynamic accents.
 
+5. **BLoC State Management Standard (`flutter_bloc`)**:
+   - Business logic for every screen is encapsulated into dedicated BLoC units per feature (`AuthBloc`, `ProfileBloc`, `PantryBloc`).
+   - UI widgets listen to state changes using `BlocConsumer` / `BlocBuilder` and trigger actions via typed Events (`AuthLogInSubmitted`, `ProfileUpdateRequested`).
+
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Frontend | Flutter |
+| State Management | BLoC (`flutter_bloc`) |
 | Auth | Firebase Auth |
 | Cloud DB | Firestore |
 | Local DB | SQLite |

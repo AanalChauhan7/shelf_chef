@@ -1,4 +1,4 @@
-/// User Profile model containing onboarding & kitchen settings.
+/// User Profile model containing onboarding, kitchen settings & language preference.
 class UserProfileData {
   final String fullName;
   final String? imagePath;
@@ -6,6 +6,7 @@ class UserProfileData {
   final int familyMembers;
   final double monthlyBudget;
   final List<String> allergies;
+  final String preferredLanguage;
 
   const UserProfileData({
     this.fullName = 'Aanal',
@@ -14,6 +15,7 @@ class UserProfileData {
     this.familyMembers = 2,
     this.monthlyBudget = 6000.0,
     this.allergies = const ['Nuts', 'Dairy'],
+    this.preferredLanguage = 'English',
   });
 
   UserProfileData copyWith({
@@ -24,6 +26,7 @@ class UserProfileData {
     int? familyMembers,
     double? monthlyBudget,
     List<String>? allergies,
+    String? preferredLanguage,
   }) {
     return UserProfileData(
       fullName: fullName ?? this.fullName,
@@ -32,6 +35,7 @@ class UserProfileData {
       familyMembers: familyMembers ?? this.familyMembers,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
       allergies: allergies ?? this.allergies,
+      preferredLanguage: preferredLanguage ?? this.preferredLanguage,
     );
   }
 }

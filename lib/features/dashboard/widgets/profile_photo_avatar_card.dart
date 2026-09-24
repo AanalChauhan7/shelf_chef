@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import 'avatar_picker_row.dart';
@@ -22,11 +23,72 @@ class ProfilePhotoAvatarCard extends StatelessWidget {
     required this.isDark,
   });
 
+  bool _hasValidPhoto() {
+    if (imagePath == null || imagePath!.isEmpty) return false;
+    if (kIsWeb ||
+        imagePath!.startsWith('blob:') ||
+        imagePath!.startsWith('http://') ||
+        imagePath!.startsWith('https://') ||
+        imagePath!.startsWith('data:')) {
+      return true;
+    }
+    try {
+      return File(imagePath!).existsSync();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Widget _buildPhotoWidget(Widget fallback) {
+    if (imagePath == null || imagePath!.isEmpty) return fallback;
+
+    if (kIsWeb ||
+        imagePath!.startsWith('blob:') ||
+        imagePath!.startsWith('http://') ||
+        imagePath!.startsWith('https://') ||
+        imagePath!.startsWith('data:')) {
+      return Image.network(
+        imagePath!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+
+    if (imagePath!.startsWith('assets/')) {
+      return Image.asset(
+        imagePath!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
+
+    try {
+      return Image.file(
+        File(imagePath!),
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
-    final hasPhoto = imagePath != null && File(imagePath!).existsSync();
+    final hasPhoto = _hasValidPhoto();
     final initialLetter = fullName.isNotEmpty ? fullName[0].toUpperCase() : 'A';
+
+    final fallbackWidget = Center(
+      child: Text(
+        initialLetter,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 28,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -53,17 +115,8 @@ class ProfilePhotoAvatarCard extends StatelessWidget {
                       ),
                       child: ClipOval(
                         child: hasPhoto
-                            ? Image.file(File(imagePath!), fit: BoxFit.cover)
-                            : Center(
-                                child: Text(
-                                  initialLetter,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
+                            ? _buildPhotoWidget(fallbackWidget)
+                            : fallbackWidget,
                       ),
                     ),
                     Positioned(

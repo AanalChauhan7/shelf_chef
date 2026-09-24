@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../cart/widgets/shopping_cart_empty_view.dart';
+import '../../pantry/screens/manual_item_entry_screen.dart';
+import '../../pantry/screens/receipt_scanner_screen.dart';
+import '../../pantry/widgets/pantry_empty_view.dart';
+import '../../recipes/screens/generate_recipe_screen.dart';
+import '../../recipes/widgets/ai_recipe_empty_view.dart';
 import '../models/user_profile_data.dart';
 import '../widgets/add_quick_modal.dart';
 import '../widgets/ai_recipe_card.dart';
@@ -66,12 +72,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  void _openAddModal() => AddQuickModal.show(context);
+  void _openAddModal() => AddQuickModal.show(
+    context,
+    familyMembers: _userProfile.familyMembers,
+    preferredLanguage: _userProfile.preferredLanguage,
+  );
 
   void _openAlertsDialog() => AlertsDialog.show(context);
 
   void _openProfileDrawer() {
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  void _openReceiptScanner() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ReceiptScannerScreen()),
+    );
+  }
+
+  void _openManualEntry() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ManualItemEntryScreen()),
+    );
+  }
+
+  void _openGenerateRecipe() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GenerateRecipeScreen(
+          initialPeopleCount: _userProfile.familyMembers,
+          initialLanguage: _userProfile.preferredLanguage,
+        ),
+      ),
+    );
   }
 
   @override
@@ -92,7 +128,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Stack(
         children: [
-          // Top Ambient Background Glow Gradients
           Positioned(
             top: -100,
             left: -80,
@@ -103,43 +138,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: activeColor.withValues(alpha: isDark ? 0.15 : 0.08),
-                    blurRadius: 100,
-                    spreadRadius: 40,
+                    color: activeColor.withValues(alpha: isDark ? 0.0 : 0.08),
+                    blurRadius: 80,
+                    spreadRadius: 0,
                   ),
                 ],
               ),
             ),
           ),
-
-          // Main Screen Views using original placeholder view layout with updated empty state text
           IndexedStack(
             index: _currentTab == 2 ? 0 : _currentTab,
             children: [
               _buildHomeDashboardView(isDark),
-              _buildPlaceholderView(
-                'Your Pantry is Empty',
-                'Scan receipts or add items to track pantry waste',
-                Icons.inventory_2_rounded,
-                isDark,
+              PantryEmptyView(
+                onScanReceipt: _openReceiptScanner,
+                onAddItemManually: _openManualEntry,
               ),
-              const SizedBox(), // Index 2 reserved for FAB modal
-              _buildPlaceholderView(
-                'No Recipe Suggestions Yet',
-                'Add pantry ingredients to get AI zero-waste recipes',
-                Icons.auto_awesome_rounded,
-                isDark,
-              ),
-              _buildPlaceholderView(
-                'Your Shopping List is Empty',
-                'Low stock items will automatically appear here',
-                Icons.shopping_cart_rounded,
-                isDark,
-              ),
+              const SizedBox(),
+              AiRecipeEmptyView(onGenerateRecipes: _openGenerateRecipe),
+              ShoppingCartEmptyView(onAddCartItem: _openManualEntry),
             ],
           ),
-
-          // Floating Bottom Navigation Bar
           Positioned(
             left: 0,
             right: 0,
@@ -155,9 +174,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- Private Sub-Widgets Defined Below Build Function ---
-
-  /// Main Home Dashboard View with concise clean build logic
   Widget _buildHomeDashboardView(bool isDark) {
     return SafeArea(
       child: SingleChildScrollView(
@@ -186,54 +202,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const AiRecipeCard(),
             const SizedBox(height: 24),
             const SpendingChartCard(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Original Placeholder view layout with updated empty state text
-  Widget _buildPlaceholderView(
-    String title,
-    String subtitle,
-    IconData icon,
-    bool isDark,
-  ) {
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
-    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
-
-    return SafeArea(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: activeColor.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 56, color: activeColor),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: TextStyle(
-                color: primaryTextColor,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
-            ),
           ],
         ),
       ),

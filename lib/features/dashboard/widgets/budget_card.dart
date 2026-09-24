@@ -4,20 +4,20 @@ import '../../../core/core.dart';
 
 /// Monthly Budget Card with glowing progress bar in Indian Currency (₹).
 class BudgetCard extends StatelessWidget {
-  final double spent;
+  final double spentAmount;
   final double totalBudget;
 
   const BudgetCard({
     super.key,
-    this.spent = 4250.00,
+    this.spentAmount = 4250.00,
     this.totalBudget = 6000.00,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final progress = (spent / totalBudget).clamp(0.0, 1.0);
-    final remaining = totalBudget - spent;
+    final progress = (spentAmount / totalBudget).clamp(0.0, 1.0);
+    final remaining = totalBudget - spentAmount;
 
     final primaryTextColor = isDark
         ? AppColors.darkTextPrimary
@@ -28,7 +28,7 @@ class BudgetCard extends StatelessWidget {
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
     final cardBgColor = isDark
-        ? const Color(0x991E293B)
+        ? const Color(0xCC1E293B)
         : const Color(0xCCFFFFFF);
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.12)
@@ -151,7 +151,7 @@ class BudgetCard extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(
-          '₹${spent.toStringAsFixed(0)}',
+          '₹${spentAmount.toStringAsFixed(0)}',
           style: TextStyle(
             color: primaryTextColor,
             fontSize: 28,
@@ -201,25 +201,12 @@ class BudgetCard extends StatelessWidget {
 
   Widget _buildFooterInfo(Color secondaryTextColor, Color activeColor) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          children: [
-            Icon(Icons.trending_down_rounded, size: 14, color: activeColor),
-            const SizedBox(width: 4),
-            Text(
-              '12% lower than last month',
-              style: AppTextStyles.bodySmall(color: secondaryTextColor),
-            ),
-          ],
-        ),
+        Icon(Icons.trending_down_rounded, size: 14, color: activeColor),
+        const SizedBox(width: 4),
         Text(
-          'Analytics →',
-          style: TextStyle(
-            color: activeColor,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+          '12% lower than last month',
+          style: AppTextStyles.bodySmall(color: secondaryTextColor),
         ),
       ],
     );

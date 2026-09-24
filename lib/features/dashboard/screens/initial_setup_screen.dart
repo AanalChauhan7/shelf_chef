@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/core.dart';
@@ -25,6 +26,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _budgetController;
+  final FocusNode _budgetFocusNode = FocusNode();
   late int _familyMembers;
   late List<String> _selectedAllergies;
   String? _imagePath;
@@ -55,17 +57,27 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   void dispose() {
     _nameController.dispose();
     _budgetController.dispose();
+    _budgetFocusNode.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
-    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _imagePath = image.path);
+    try {
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() => _imagePath = image.path);
+      }
+    } catch (e) {
+      if (kDebugMode) print('Image pick note: $e');
     }
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState?.validate() ?? true) {
       final budget = double.tryParse(_budgetController.text.trim()) ?? 6000.0;
       final updated = widget.initialData.copyWith(
@@ -77,6 +89,14 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         monthlyBudget: budget,
         allergies: _selectedAllergies,
       );
+
+      if (AuthService.currentUser != null) {
+        await AuthService.updateUserProfile(updated);
+      } else {
+        await GuestStorageService.saveGuestProfile(updated);
+      }
+
+      if (!mounted) return;
       widget.onSave(updated);
       Navigator.pop(context);
     }
@@ -99,7 +119,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
-        automaticallyImplyLeading: false, // No back button
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
@@ -135,7 +155,13 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   isDark: isDark,
                 ),
                 const SizedBox(height: 18),
-                FullNameInputField(controller: _nameController),
+                FullNameInputField(
+                  controller: _nameController,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) {
+                    FocusScope.of(context).requestFocus(_budgetFocusNode);
+                  },
+                ),
                 const SizedBox(height: 16),
                 FamilyMembersCounterRow(
                   count: _familyMembers,
@@ -145,7 +171,12 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   onIncrement: () => setState(() => _familyMembers++),
                 ),
                 const SizedBox(height: 16),
-                MonthlyBudgetInputField(controller: _budgetController),
+                MonthlyBudgetInputField(
+                  controller: _budgetController,
+                  focusNode: _budgetFocusNode,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _saveProfile(),
+                ),
                 const SizedBox(height: 18),
                 AllergiesPickerSection(
                   availableAllergies: _availableAllergies,
@@ -162,8 +193,6 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       ),
     );
   }
-
-  // --- Private Sub-Widgets Defined Below Build Function ---
 
   Widget _buildActionButtons() {
     return Column(

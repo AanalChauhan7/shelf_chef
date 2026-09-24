@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
-/// Reusable Full Name text field input with optional validator and red error style.
+/// Reusable Full Name text field input with optional validator and Enter key handling.
 class FullNameInputField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String? Function(String?)? validator;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const FullNameInputField({
     super.key,
     required this.controller,
     this.label = 'Full Name',
     this.validator,
+    this.focusNode,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -23,7 +29,10 @@ class FullNameInputField extends StatelessWidget {
 
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       validator: validator ?? AppValidators.validateOptionalFullName,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       style: TextStyle(color: primaryTextColor, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
@@ -121,15 +130,21 @@ class FamilyMembersCounterRow extends StatelessWidget {
   }
 }
 
-/// Reusable Monthly Grocery Budget input field in INR (₹) with optional validator and red error style.
+/// Reusable Monthly Grocery Budget input field in INR (₹) with Enter key handling.
 class MonthlyBudgetInputField extends StatelessWidget {
   final TextEditingController controller;
   final String? Function(String?)? validator;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const MonthlyBudgetInputField({
     super.key,
     required this.controller,
     this.validator,
+    this.focusNode,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -142,8 +157,11 @@ class MonthlyBudgetInputField extends StatelessWidget {
 
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: TextInputType.number,
       validator: validator ?? AppValidators.validateOptionalBudget,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       style: TextStyle(color: primaryTextColor, fontSize: 14),
       decoration: InputDecoration(
         labelText: 'Monthly Grocery Budget',

@@ -16,11 +16,15 @@ class DetectedItemBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xCC0F172A),
+        color: const Color(0xEE0F172A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF38BDF8), width: 1.2),
+        border: Border.all(color: Colors.white24, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x6638BDF8), blurRadius: 10, spreadRadius: 1),
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
         ],
       ),
       child: Row(

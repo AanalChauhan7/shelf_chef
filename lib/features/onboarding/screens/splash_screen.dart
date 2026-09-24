@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../dashboard/screens/dashboard_screen.dart';
 import 'onboarding_screen.dart';
 
 /// Animated Splash Screen for ShelfChef AI branding.
@@ -46,10 +47,28 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateToOnboarding() {
     if (!mounted) return;
     _navigationTimer?.cancel();
+
+    final currentUser = AuthService.currentUser;
+    Widget destinationScreen;
+
+    if (currentUser != null) {
+      final name = currentUser.displayName?.isNotEmpty == true
+          ? currentUser.displayName!
+          : (currentUser.email?.contains('@') == true
+                ? currentUser.email!.split('@').first
+                : 'Chef User');
+      destinationScreen = DashboardScreen(
+        userName: name,
+        showSetupOnLaunch: false,
+      );
+    } else {
+      destinationScreen = const OnboardingScreen();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            const OnboardingScreen(),
+            destinationScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

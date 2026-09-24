@@ -1,19 +1,37 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../pantry/screens/manual_item_entry_screen.dart';
+import '../../pantry/screens/receipt_scanner_screen.dart';
+import '../../recipes/screens/generate_recipe_screen.dart';
 
 /// Modal sheet triggered by center FAB button for quick add actions.
 class AddQuickModal extends StatelessWidget {
   final bool isDark;
+  final int familyMembers;
+  final String preferredLanguage;
 
-  const AddQuickModal({super.key, required this.isDark});
+  const AddQuickModal({
+    super.key,
+    required this.isDark,
+    this.familyMembers = 2,
+    this.preferredLanguage = 'English',
+  });
 
-  static void show(BuildContext context) {
+  static void show(
+    BuildContext context, {
+    int familyMembers = 2,
+    String preferredLanguage = 'English',
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => AddQuickModal(isDark: isDark),
+      builder: (context) => AddQuickModal(
+        isDark: isDark,
+        familyMembers: familyMembers,
+        preferredLanguage: preferredLanguage,
+      ),
     );
   }
 
@@ -53,10 +71,22 @@ class AddQuickModal extends StatelessWidget {
           const SizedBox(height: 20),
           _modalOption(
             context,
-            icon: Icons.camera_alt_rounded,
-            title: 'Scan Pantry Shelf',
-            subtitle: 'Auto-detect items using AI camera',
-            color: isDark ? AppColors.darkAccent : AppColors.primaryGreen,
+            icon: Icons.auto_awesome_rounded,
+            title: 'Generate New Recipe',
+            subtitle: 'Scan & add ingredients with custom portion size',
+            color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GenerateRecipeScreen(
+                    initialPeopleCount: familyMembers,
+                    initialLanguage: preferredLanguage,
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           _modalOption(
@@ -64,7 +94,14 @@ class AddQuickModal extends StatelessWidget {
             icon: Icons.receipt_long_rounded,
             title: 'Scan Grocery Bill / Receipt',
             subtitle: 'Parse receipt items & prices automatically',
-            color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
+            color: isDark ? AppColors.darkAccent : AppColors.primaryGreen,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReceiptScannerScreen()),
+              );
+            },
           ),
           const SizedBox(height: 12),
           _modalOption(
@@ -73,6 +110,15 @@ class AddQuickModal extends StatelessWidget {
             title: 'Manual Item Entry',
             subtitle: 'Type item name, quantity & expiry',
             color: AppColors.warningOrange,
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ManualItemEntryScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 20),
         ],
@@ -86,6 +132,7 @@ class AddQuickModal extends StatelessWidget {
     required String title,
     required String subtitle,
     required Color color,
+    VoidCallback? onTap,
   }) {
     final optionBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
     final primaryTextColor = isDark
@@ -96,7 +143,7 @@ class AddQuickModal extends StatelessWidget {
         : AppColors.textSecondary;
 
     return InkWell(
-      onTap: () => Navigator.pop(context),
+      onTap: onTap ?? () => Navigator.pop(context),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(16),

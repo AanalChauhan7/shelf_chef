@@ -469,3 +469,9 @@ This is a major accessibility and premium feature.
 4. **Consistent Design System & Theme Adaptability**:
    - Support both Light & Dark modes seamlessly across all screens.
    - Use `AppGradients.primaryGradient` (`#166534 → #22C55E`) for all primary buttons and `AppColors.getRandomColor()` for harmonized dynamic accents.
+
+5. **State Management & BLoC Pattern (`flutter_bloc`)**:
+   - Every major screen/feature is decoupled using the BLoC pattern (`flutter_bloc` & `equatable`):
+     - **AuthBloc** ([auth_bloc.dart](file:///c:/Users/Vivek/OneDrive/Desktop/shelf_chef/lib/features/auth/bloc/auth_bloc.dart)): Manages Firebase Authentication, login/signup events, and error state mapping.
+     - **ProfileBloc** ([profile_bloc.dart](file:///c:/Users/Vivek/OneDrive/Desktop/shelf_chef/lib/features/dashboard/bloc/profile_bloc.dart)): Manages profile updates, budget settings, and Cloud Firestore sync.
+     - **PantryBloc**: Handles pantry inventory states, category filtering, and expiry warnings.

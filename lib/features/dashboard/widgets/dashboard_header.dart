@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
@@ -60,6 +61,8 @@ class DashboardHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Row(
           children: [
+            _buildThemeToggleButton(isDark, primaryTextColor),
+            const SizedBox(width: 8),
             _buildNotificationBell(isDark, primaryTextColor),
             const SizedBox(width: 10),
             _buildProfileAvatar(activeColor),
@@ -107,6 +110,40 @@ class DashboardHeader extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildThemeToggleButton(bool isDark, Color primaryTextColor) {
+    return GestureDetector(
+      onTap: () async {
+        await ThemeService.toggleTheme(isDark);
+      },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0x991E293B) : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : AppColors.border,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+          color: isDark ? const Color(0xFFFFD54F) : const Color(0xFF5C6BC0),
+          size: 22,
+        ),
       ),
     );
   }
@@ -161,8 +198,46 @@ class DashboardHeader extends StatelessWidget {
   }
 
   Widget _buildProfileAvatar(Color activeColor) {
-    final hasPhoto = imagePath != null && File(imagePath!).existsSync();
+    final hasPhoto =
+        imagePath != null &&
+        imagePath!.isNotEmpty &&
+        (kIsWeb ||
+            imagePath!.startsWith('blob:') ||
+            imagePath!.startsWith('http://') ||
+            imagePath!.startsWith('https://') ||
+            imagePath!.startsWith('data:') ||
+            File(imagePath!).existsSync());
     final initialLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
+
+    final fallback = Center(
+      child: Text(
+        initialLetter,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+
+    Widget photoWidget() {
+      if (kIsWeb ||
+          imagePath!.startsWith('blob:') ||
+          imagePath!.startsWith('http://') ||
+          imagePath!.startsWith('https://') ||
+          imagePath!.startsWith('data:')) {
+        return Image.network(
+          imagePath!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallback,
+        );
+      }
+      return Image.file(
+        File(imagePath!),
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      );
+    }
 
     return GestureDetector(
       onTap: onOpenProfile,
@@ -181,20 +256,7 @@ class DashboardHeader extends StatelessWidget {
             ),
           ],
         ),
-        child: ClipOval(
-          child: hasPhoto
-              ? Image.file(File(imagePath!), fit: BoxFit.cover)
-              : Center(
-                  child: Text(
-                    initialLetter,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-        ),
+        child: ClipOval(child: hasPhoto ? photoWidget() : fallback),
       ),
     );
   }

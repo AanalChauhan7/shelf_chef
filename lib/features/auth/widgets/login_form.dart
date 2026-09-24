@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
-/// Clean Log In Form component for AuthScreen with Form Validation.
-class LoginForm extends StatelessWidget {
+/// Clean Log In Form component for AuthScreen with Form Validation & Enter key submission.
+class LoginForm extends StatefulWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController emailController;
   final TextEditingController passwordController;
@@ -21,36 +21,60 @@ class LoginForm extends StatelessWidget {
   });
 
   @override
+  State<LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<LoginForm> {
+  final FocusNode _passwordFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _submitForm() {
+    if (widget.formKey.currentState?.validate() ?? false) {
+      widget.onSubmit();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return KeyedSubtree(
       key: const ValueKey('login_form'),
       child: Form(
-        key: formKey,
+        key: widget.formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AppTextField(
               label: 'Email Address',
               hint: 'alex@kitchen.com',
-              controller: emailController,
+              controller: widget.emailController,
               keyboardType: TextInputType.emailAddress,
               prefixIcon: Icons.mail_outline_rounded,
               validator: AppValidators.validateEmail,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocusNode);
+              },
             ),
             const SizedBox(height: AppSizes.p16),
             AppTextField(
               label: 'Password',
               hint: '••••••••',
-              controller: passwordController,
+              controller: widget.passwordController,
               isPassword: true,
               prefixIcon: Icons.lock_outline_rounded,
               validator: AppValidators.validatePassword,
+              focusNode: _passwordFocusNode,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _submitForm(),
             ),
             const SizedBox(height: AppSizes.p12),
-
-            // Remember me & Forgot password
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -60,8 +84,8 @@ class LoginForm extends StatelessWidget {
                       width: 24,
                       height: 24,
                       child: Checkbox(
-                        value: rememberMe,
-                        onChanged: onRememberMeChanged,
+                        value: widget.rememberMe,
+                        onChanged: widget.onRememberMeChanged,
                         activeColor: isDark
                             ? AppColors.darkAccent
                             : AppColors.primaryGreen,
@@ -98,11 +122,7 @@ class LoginForm extends StatelessWidget {
             AppButton(
               text: 'Log In',
               icon: Icons.arrow_forward_rounded,
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  onSubmit();
-                }
-              },
+              onPressed: _submitForm,
             ),
           ],
         ),
