@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "161422365876",
+    "project_id": "shelf-chef-app",
+    "storage_bucket": "shelf-chef-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:161422365876:android:e57feec3c9075ed5b233e1",
+        "android_client_info": {
+          "package_name": "com.example.shelfchef"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "161422365876-lg0tm0tp43gloce2f8dhjnk49ot63mqu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDD18OtbEdKTqtD6DM45h7Gm1F0pbgMgfQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "161422365876-lg0tm0tp43gloce2f8dhjnk49ot63mqu.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

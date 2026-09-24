@@ -1,4 +1,4 @@
-package com.example.shelf_chef
+package com.example.shelfchef
 
 import io.flutter.embedding.android.FlutterActivity
 
