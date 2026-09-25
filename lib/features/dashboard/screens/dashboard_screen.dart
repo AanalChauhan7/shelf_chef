@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../cart/widgets/shopping_cart_empty_view.dart';
+import '../../pantry/models/pantry_item.dart';
 import '../../pantry/screens/manual_item_entry_screen.dart';
 import '../../pantry/screens/receipt_scanner_screen.dart';
 import '../../pantry/widgets/pantry_empty_view.dart';
@@ -25,7 +26,7 @@ class DashboardScreen extends StatefulWidget {
 
   const DashboardScreen({
     super.key,
-    this.userName = 'Aanal',
+    this.userName = 'Guest Chef',
     this.showSetupOnLaunch = true,
   });
 
@@ -37,15 +38,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentTab = 0; // 0: Home, 1: Pantry, 3: Recipes, 4: Cart
   late UserProfileData _userProfile;
+  List<PantryItem> _pantryItems = [];
 
   @override
   void initState() {
     super.initState();
     _userProfile = UserProfileData(fullName: widget.userName);
+    _fetchPantryItems();
 
     if (widget.showSetupOnLaunch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _openInitialSetupDialog();
+      });
+    }
+  }
+
+  Future<void> _fetchPantryItems() async {
+    final items = await PantryApiService.fetchPantryItems();
+    if (mounted) {
+      setState(() {
+        _pantryItems = items;
       });
     }
   }
@@ -84,18 +96,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _scaffoldKey.currentState?.openEndDrawer();
   }
 
-  void _openReceiptScanner() {
-    Navigator.push(
+  void _openReceiptScanner() async {
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const ReceiptScannerScreen()),
     );
+    if (result == true && mounted) {
+      _fetchPantryItems();
+      setState(() {
+        _currentTab = 1;
+      });
+    }
   }
 
-  void _openManualEntry() {
-    Navigator.push(
+  void _openManualEntry() async {
+    final newItem = await Navigator.push<PantryItem>(
       context,
       MaterialPageRoute(builder: (_) => const ManualItemEntryScreen()),
     );
+    if (newItem != null && mounted) {
+      _fetchPantryItems();
+      setState(() {
+        _currentTab = 1;
+      });
+    }
   }
 
   void _openGenerateRecipe() {
@@ -197,7 +221,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 24),
             BudgetCard(totalBudget: _userProfile.monthlyBudget),
             const SizedBox(height: 24),
-            const ExpiringItemsList(),
+            ExpiringItemsList(
+              liveItems: _pantryItems,
+              onViewAll: () => setState(() => _currentTab = 1),
+            ),
             const SizedBox(height: 24),
             const AiRecipeCard(),
             const SizedBox(height: 24),

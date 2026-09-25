@@ -45,6 +45,7 @@ class ExtractedReceiptItemsSheet extends StatefulWidget {
 class _ExtractedReceiptItemsSheetState
     extends State<ExtractedReceiptItemsSheet> {
   late List<PantryItem> _items;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -52,9 +53,7 @@ class _ExtractedReceiptItemsSheetState
     _items = List.from(widget.initialItems);
   }
 
-  void _removeItem(int index) {
-    setState(() => _items.removeAt(index));
-  }
+  void _removeItem(int index) => setState(() => _items.removeAt(index));
 
   void _addNewItem() {
     setState(() {
@@ -71,20 +70,37 @@ class _ExtractedReceiptItemsSheetState
     });
   }
 
-  double get _calculatedTotal {
-    return _items.fold(0.0, (sum, i) => sum + (i.estimatedPrice ?? 0.0));
+  double get _calculatedTotal =>
+      _items.fold(0.0, (sum, i) => sum + (i.estimatedPrice ?? 0.0));
+
+  Future<void> _handleConfirm() async {
+    if (_items.isEmpty) return;
+    setState(() => _isSubmitting = true);
+
+    await PantryApiService.bulkPostPantryItems(_items);
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    widget.onConfirmAdd(_items);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Items added successfully!'),
+        backgroundColor: AppColors.secondaryGreen,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sheetBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
+    final primaryColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
     return Container(
@@ -102,9 +118,7 @@ class _ExtractedReceiptItemsSheetState
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF475569)
-                    : const Color(0xFFCBD5E1),
+                color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -118,11 +132,7 @@ class _ExtractedReceiptItemsSheetState
                   color: activeColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  Icons.receipt_long_rounded,
-                  color: activeColor,
-                  size: 24,
-                ),
+                child: Icon(Icons.receipt_long_rounded, color: activeColor, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -132,25 +142,21 @@ class _ExtractedReceiptItemsSheetState
                     Text(
                       widget.storeName,
                       style: TextStyle(
-                        color: primaryTextColor,
+                        color: primaryColor,
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     Text(
-                      'AI Extracted ${_items.length} items • Total: ₹${_calculatedTotal.toStringAsFixed(0)}',
-                      style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                      'Extracted ${_items.length} items • Total: ₹${_calculatedTotal.toStringAsFixed(0)}',
+                      style: TextStyle(color: secondaryColor, fontSize: 12),
                     ),
                   ],
                 ),
               ),
               IconButton(
                 onPressed: _addNewItem,
-                icon: Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: activeColor,
-                ),
-                tooltip: 'Add item',
+                icon: Icon(Icons.add_circle_outline_rounded, color: activeColor),
               ),
             ],
           ),
@@ -160,89 +166,35 @@ class _ExtractedReceiptItemsSheetState
           Expanded(
             child: ListView.separated(
               itemCount: _items.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF0F172A)
-                        : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.border,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: activeColor.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _getCategoryIcon(item.category),
-                          size: 18,
-                          color: activeColor,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.name,
-                              style: TextStyle(
-                                color: primaryTextColor,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              '${item.displayQty} • ${item.storageLocation} • Exp: ${item.daysUntilExpiry}d',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        '₹${item.estimatedPrice?.toStringAsFixed(0) ?? "0"}',
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          color: AppColors.dangerRed,
-                          size: 20,
-                        ),
-                        onPressed: () => _removeItem(index),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              separatorBuilder: (_, index) => const SizedBox(height: 10),
+              itemBuilder: (context, index) => _buildItemTile(
+                _items[index],
+                index,
+                isDark,
+                primaryColor,
+                secondaryColor,
+                activeColor,
+              ),
             ),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _items.isEmpty
-                ? null
-                : () {
-                    widget.onConfirmAdd(_items);
-                    Navigator.pop(context);
-                  },
-            icon: const Icon(Icons.check_rounded, size: 20),
-            label: Text('Confirm & Add ${_items.length} Items to Pantry'),
+            onPressed: _items.isEmpty || _isSubmitting ? null : _handleConfirm,
+            icon: _isSubmitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.check_rounded, size: 20),
+            label: Text(
+              _isSubmitting
+                  ? 'Saving ${_items.length} items...'
+                  : 'Confirm & Add ${_items.length} Items to Pantry',
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: activeColor,
               foregroundColor: Colors.white,
@@ -257,20 +209,71 @@ class _ExtractedReceiptItemsSheetState
     );
   }
 
-  static IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Dairy':
-        return Icons.local_drink_rounded;
-      case 'Vegetables':
-        return Icons.eco_rounded;
-      case 'Fruits':
-        return Icons.apple_rounded;
-      case 'Grains & Pulses':
-        return Icons.grain_rounded;
-      case 'Spices':
-        return Icons.local_fire_department_rounded;
-      default:
-        return Icons.shopping_basket_rounded;
-    }
+  Widget _buildItemTile(
+    PantryItem item,
+    int index,
+    bool isDark,
+    Color primaryColor,
+    Color secondaryColor,
+    Color activeColor,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: activeColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.shopping_basket_rounded, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '${item.displayQty} • ${item.storageLocation} • Exp: ${item.daysUntilExpiry}d',
+                  style: TextStyle(color: secondaryColor, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '₹${item.estimatedPrice?.toStringAsFixed(0) ?? "0"}',
+            style: TextStyle(
+              color: primaryColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.dangerRed,
+              size: 20,
+            ),
+            onPressed: () => _removeItem(index),
+          ),
+        ],
+      ),
+    );
   }
 }

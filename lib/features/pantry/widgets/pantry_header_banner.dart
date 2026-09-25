@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 
-/// Professional glassmorphic header banner for Pantry tab with health rating indicator.
+/// Professional glassmorphic header banner for Pantry tab.
 class PantryHeaderBanner extends StatelessWidget {
   final int totalItemsCount;
   final int expiringSoonCount;
@@ -27,41 +27,41 @@ class PantryHeaderBanner extends StatelessWidget {
         : AppColors.border;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: cardBg,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: borderColor, width: 1.2),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor, width: 1.1),
             boxShadow: [
               BoxShadow(
-                color: activeColor.withValues(alpha: 0.08),
-                blurRadius: 20,
-                spreadRadius: 2,
+                color: activeColor.withValues(alpha: 0.06),
+                blurRadius: 16,
+                spreadRadius: 1,
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   gradient: AppGradients.primaryGradient,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: activeColor.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: activeColor.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
@@ -69,11 +69,11 @@ class PantryHeaderBanner extends StatelessWidget {
                   child: Icon(
                     Icons.inventory_2_rounded,
                     color: Colors.white,
-                    size: 26,
+                    size: 22,
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,24 +82,23 @@ class PantryHeaderBanner extends StatelessWidget {
                       'Pantry Inventory',
                       style: TextStyle(
                         color: primaryColor,
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
+                        letterSpacing: -0.3,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
                       children: [
                         _buildStatChip(
                           '$totalItemsCount Items',
                           activeColor,
-                          isDark,
                         ),
-                        const SizedBox(width: 8),
                         _buildStatChip(
                           '$expiringSoonCount Expiring',
                           AppColors.warningOrange,
-                          isDark,
                         ),
                       ],
                     ),
@@ -113,19 +112,19 @@ class PantryHeaderBanner extends StatelessWidget {
     );
   }
 
-  Widget _buildStatChip(String label, Color color, bool isDark) {
+  Widget _buildStatChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: color,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
       ),

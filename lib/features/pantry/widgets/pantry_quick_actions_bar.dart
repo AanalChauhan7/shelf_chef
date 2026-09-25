@@ -29,7 +29,6 @@ class PantryQuickActionsBar extends StatelessWidget {
       children: [
         Expanded(
           child: _buildActionCard(
-            context: context,
             title: 'Scan Bill',
             subtitle: 'AI OCR Extraction',
             badgeText: '✨ AI',
@@ -41,10 +40,9 @@ class PantryQuickActionsBar extends StatelessWidget {
             onTap: onScanReceipt,
           ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 10),
         Expanded(
           child: _buildActionCard(
-            context: context,
             title: 'Manual Entry',
             subtitle: 'Custom Item Input',
             badgeText: '+ Add',
@@ -61,7 +59,6 @@ class PantryQuickActionsBar extends StatelessWidget {
   }
 
   Widget _buildActionCard({
-    required BuildContext context,
     required String title,
     required String subtitle,
     required String badgeText,
@@ -76,39 +73,35 @@ class PantryQuickActionsBar extends StatelessWidget {
     final borderColor = themeColor.withValues(alpha: isDark ? 0.35 : 0.22);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: cardBg,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: borderColor, width: 1.2),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: borderColor, width: 1.1),
               boxShadow: [
                 BoxShadow(
-                  color: themeColor.withValues(alpha: 0.1),
-                  blurRadius: 16,
+                  color: themeColor.withValues(alpha: 0.08),
+                  blurRadius: 12,
                   spreadRadius: 1,
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
                         color: themeColor.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
@@ -116,16 +109,16 @@ class PantryQuickActionsBar extends StatelessWidget {
                           color: themeColor.withValues(alpha: 0.3),
                         ),
                       ),
-                      child: Icon(icon, size: 20, color: themeColor),
+                      child: Icon(icon, size: 16, color: themeColor),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                        horizontal: 6,
+                        vertical: 2,
                       ),
                       decoration: BoxDecoration(
                         color: themeColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                         border: Border.all(
                           color: themeColor.withValues(alpha: 0.25),
                         ),
@@ -134,29 +127,33 @@ class PantryQuickActionsBar extends StatelessWidget {
                         badgeText,
                         style: TextStyle(
                           color: themeColor,
-                          fontSize: 10,
+                          fontSize: 9,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: primaryColor,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: secondaryColor,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

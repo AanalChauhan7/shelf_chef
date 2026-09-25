@@ -95,12 +95,18 @@ class AddQuickModal extends StatelessWidget {
             title: 'Scan Grocery Bill / Receipt',
             subtitle: 'Parse receipt items & prices automatically',
             color: isDark ? AppColors.darkAccent : AppColors.primaryGreen,
-            onTap: () {
+            onTap: () async {
+              final rootContext = context;
               Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ReceiptScannerScreen()),
+              final result = await Navigator.push<bool>(
+                rootContext,
+                MaterialPageRoute(
+                  builder: (_) => const ReceiptScannerScreen(),
+                ),
               );
+              if (result == true && rootContext.mounted) {
+                // If needed, root navigator context handles state update
+              }
             },
           ),
           const SizedBox(height: 12),

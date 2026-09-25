@@ -77,7 +77,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       final budget = double.tryParse(_budgetController.text.trim()) ?? 6000.0;
       final updated = widget.userProfile.copyWith(
         fullName: _nameController.text.trim().isEmpty
-            ? 'Aanal'
+            ? 'Guest Chef'
             : _nameController.text.trim(),
         imagePath: _imagePath,
         familyMembers: _familyMembers,

@@ -82,7 +82,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       final budget = double.tryParse(_budgetController.text.trim()) ?? 6000.0;
       final updated = widget.initialData.copyWith(
         fullName: _nameController.text.trim().isEmpty
-            ? 'Aanal'
+            ? 'Guest Chef'
             : _nameController.text.trim(),
         imagePath: _imagePath,
         familyMembers: _familyMembers,

@@ -15,10 +15,12 @@ class GetStartedScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToDashboard(BuildContext context) {
+  void _navigateToDashboard(BuildContext context) async {
+    await GuestStorageService.setGuestMode(true);
+    if (!context.mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (context) => const DashboardScreen(userName: 'Aanal'),
+        builder: (context) => const DashboardScreen(userName: 'Guest Chef'),
       ),
       (route) => false,
     );

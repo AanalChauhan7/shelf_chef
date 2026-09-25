@@ -9,7 +9,7 @@ class UserProfileData {
   final String preferredLanguage;
 
   const UserProfileData({
-    this.fullName = 'Aanal',
+    this.fullName = 'Guest Chef',
     this.imagePath,
     this.avatarEmoji = '👩‍🍳',
     this.familyMembers = 2,

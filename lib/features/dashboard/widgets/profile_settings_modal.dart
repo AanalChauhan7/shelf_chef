@@ -76,7 +76,7 @@ class _ProfileSettingsModalState extends State<ProfileSettingsModal> {
 
   void _handleSave() {
     final name = _nameController.text.trim().isEmpty
-        ? 'Aanal'
+        ? 'Guest Chef'
         : _nameController.text.trim();
     final budget = double.tryParse(_budgetController.text.trim()) ?? 6000.0;
 

@@ -14,6 +14,7 @@ export 'utils/app_validators.dart';
 // Core Services Export
 export 'services/auth_service.dart';
 export 'services/guest_storage_service.dart';
+export 'services/pantry_api_service.dart';
 export 'services/theme_service.dart';
 export 'services/tts_service.dart';
 

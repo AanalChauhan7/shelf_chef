@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../models/pantry_item.dart';
-import '../widgets/manual_entry_form_helpers.dart';
+import '../widgets/manual_entry_form_sections.dart';
 
-/// Professional, executive-grade manual item entry screen with vector icons.
+/// Executive-grade manual inventory entry screen with modern cards & date picker.
 class ManualItemEntryScreen extends StatefulWidget {
   final Function(PantryItem)? onItemAdded;
 
@@ -18,16 +18,18 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
   final _nameController = TextEditingController();
   final _qtyController = TextEditingController(text: '1');
   final _priceController = TextEditingController();
+  final _expiryController = TextEditingController();
 
   final _nameFocusNode = FocusNode();
   final _qtyFocusNode = FocusNode();
   final _priceFocusNode = FocusNode();
+  final _expiryFocusNode = FocusNode();
 
   String _selectedCategory = 'Vegetables';
   String _selectedUnit = 'pcs';
   String _selectedStorage = 'Pantry';
-  int _selectedExpiryDays = 7;
-  DateTime? _customExpiryDate;
+  DateTime? _selectedExpiryDate;
+  bool _isSubmitting = false;
 
   final List<Map<String, dynamic>> _categories = const [
     {'name': 'Vegetables', 'icon': Icons.eco_rounded},
@@ -35,46 +37,79 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
     {'name': 'Dairy', 'icon': Icons.local_drink_rounded},
     {'name': 'Grains & Pulses', 'icon': Icons.grain_rounded},
     {'name': 'Spices', 'icon': Icons.local_fire_department_rounded},
-    {'name': 'Bakery', 'icon': Icons.bakery_dining_rounded},
-    {'name': 'Beverages', 'icon': Icons.local_cafe_rounded},
     {'name': 'Snacks', 'icon': Icons.fastfood_rounded},
     {'name': 'Other', 'icon': Icons.inventory_2_rounded},
   ];
 
-  final List<String> _units = const [
-    'pcs',
-    'g',
-    'kg',
-    'ml',
-    'L',
-    'pack',
-    'katori',
-    'tbsp',
-  ];
-  final List<Map<String, dynamic>> _expiryOptions = const [
-    {'label': '3 Days', 'days': 3},
-    {'label': '1 Week', 'days': 7},
-    {'label': '2 Weeks', 'days': 14},
-    {'label': '1 Month', 'days': 30},
-  ];
+  final List<String> _units = const ['pcs', 'g', 'kg', 'ml', 'L', 'pack', 'packet', 'tbsp'];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedExpiryDate = DateTime.now().add(const Duration(days: 7));
+    _expiryController.text = _formatDate(_selectedExpiryDate!);
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _qtyController.dispose();
     _priceController.dispose();
+    _expiryController.dispose();
     _nameFocusNode.dispose();
     _qtyFocusNode.dispose();
     _priceFocusNode.dispose();
+    _expiryFocusNode.dispose();
     super.dispose();
   }
 
-  void _submitForm() {
+  String _formatDate(DateTime dt) {
+    final d = dt.day.toString().padLeft(2, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final y = (dt.year % 100).toString().padLeft(2, '0');
+    return '$d/$m/$y';
+  }
+
+  DateTime? _parseDateString(String text) {
+    final clean = text.trim();
+    if (clean.contains('/')) {
+      final p = clean.split('/');
+      if (p.length == 3) {
+        final d = int.tryParse(p[0]) ?? 1;
+        final m = int.tryParse(p[1]) ?? 1;
+        var y = int.tryParse(p[2]) ?? 2026;
+        if (y < 100) y += 2000;
+        return DateTime(y, m, d);
+      }
+    }
+    return DateTime.tryParse(clean);
+  }
+
+  Future<void> _pickExpiryDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          _selectedExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 1825)),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedExpiryDate = picked;
+        _expiryController.text = _formatDate(picked);
+      });
+    }
+  }
+
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    final expiry =
-        _customExpiryDate ??
-        DateTime.now().add(Duration(days: _selectedExpiryDays));
+    setState(() => _isSubmitting = true);
+
+    final expiry = _parseDateString(_expiryController.text) ??
+        _selectedExpiryDate ??
+        DateTime.now().add(const Duration(days: 7));
     final price = double.tryParse(_priceController.text.trim());
+
     final newItem = PantryItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
@@ -85,10 +120,16 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
       estimatedPrice: price,
       storageLocation: _selectedStorage,
     );
+
+    await PantryApiService.addSinglePantryItem(newItem);
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
     widget.onItemAdded?.call(newItem);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added "${newItem.name}" to Pantry!'),
+      const SnackBar(
+        content: Text('Item added successfully!'),
         backgroundColor: AppColors.secondaryGreen,
         behavior: SnackBarBehavior.floating,
       ),
@@ -99,29 +140,26 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
-    final cardBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
-    final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
+    final primaryColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: primaryTextColor),
+          icon: Icon(Icons.arrow_back_rounded, color: primaryColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Add Inventory Item',
           style: TextStyle(
-            color: primaryTextColor,
+            color: primaryColor,
             fontSize: 18,
             fontWeight: FontWeight.w800,
           ),
@@ -134,219 +172,75 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              ManualEntryFormHelpers.buildLabel('Item Name', primaryTextColor),
-              TextFormField(
-                controller: _nameController,
-                focusNode: _nameFocusNode,
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) =>
-                    FocusScope.of(context).requestFocus(_qtyFocusNode),
-                validator: (val) => val == null || val.trim().isEmpty
-                    ? 'Enter item name'
-                    : null,
-                style: TextStyle(color: primaryTextColor),
-                decoration: ManualEntryFormHelpers.inputDeco(
-                  hint: 'e.g. Fresh Tomatoes, Besan, Milk',
-                  bg: cardBg,
-                  border: borderColor,
-                  hintColor: secondaryTextColor,
-                  prefixIcon: Icon(
-                    Icons.edit_outlined,
-                    color: secondaryTextColor,
-                    size: 18,
-                  ),
-                ),
+              ItemDetailsSectionCard(
+                isDark: isDark,
+                primary: primaryColor,
+                secondary: secondaryColor,
+                active: activeColor,
+                nameController: _nameController,
+                nameFocusNode: _nameFocusNode,
+                qtyFocusNode: _qtyFocusNode,
+                categories: _categories,
+                selectedCategory: _selectedCategory,
+                onSelectCategory: (cat) =>
+                    setState(() => _selectedCategory = cat),
               ),
-              const SizedBox(height: 20),
-              ManualEntryFormHelpers.buildLabel('Category', primaryTextColor),
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
-                  separatorBuilder: (_, index) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final cat = _categories[index];
-                    final String catName = cat['name'] as String;
-                    final isSelected = _selectedCategory == catName;
-                    return ChoiceChip(
-                      avatar: Icon(
-                        cat['icon'] as IconData,
-                        size: 14,
-                        color: isSelected ? Colors.white : primaryTextColor,
-                      ),
-                      label: Text(catName),
-                      selected: isSelected,
-                      selectedColor: activeColor,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : primaryTextColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      onSelected: (_) =>
-                          setState(() => _selectedCategory = catName),
-                    );
-                  },
-                ),
+              const SizedBox(height: 16),
+              QuantityAndPriceSectionCard(
+                isDark: isDark,
+                primary: primaryColor,
+                secondary: secondaryColor,
+                qtyController: _qtyController,
+                priceController: _priceController,
+                qtyFocusNode: _qtyFocusNode,
+                priceFocusNode: _priceFocusNode,
+                expiryFocusNode: _expiryFocusNode,
+                units: _units,
+                selectedUnit: _selectedUnit,
+                onSelectUnit: (unit) => setState(() => _selectedUnit = unit),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ManualEntryFormHelpers.buildLabel(
-                          'Quantity',
-                          primaryTextColor,
-                        ),
-                        TextFormField(
-                          controller: _qtyController,
-                          focusNode: _qtyFocusNode,
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) => FocusScope.of(
-                            context,
-                          ).requestFocus(_priceFocusNode),
-                          validator: (val) => val == null || val.trim().isEmpty
-                              ? 'Enter qty'
-                              : null,
-                          style: TextStyle(color: primaryTextColor),
-                          decoration: ManualEntryFormHelpers.inputDeco(
-                            hint: '1',
-                            bg: cardBg,
-                            border: borderColor,
-                            hintColor: secondaryTextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ManualEntryFormHelpers.buildLabel(
-                          'Unit',
-                          primaryTextColor,
-                        ),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedUnit,
-                          dropdownColor: isDark
-                              ? const Color(0xFF1E293B)
-                              : Colors.white,
-                          style: TextStyle(
-                            color: primaryTextColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          decoration: ManualEntryFormHelpers.inputDeco(
-                            hint: '',
-                            bg: cardBg,
-                            border: borderColor,
-                            hintColor: secondaryTextColor,
-                          ),
-                          items: _units
-                              .map(
-                                (u) =>
-                                    DropdownMenuItem(value: u, child: Text(u)),
-                              )
-                              .toList(),
-                          onChanged: (val) =>
-                              setState(() => _selectedUnit = val ?? 'pcs'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 16),
+              StorageAndExpirySectionCard(
+                isDark: isDark,
+                primary: primaryColor,
+                secondary: secondaryColor,
+                active: activeColor,
+                expiryController: _expiryController,
+                expiryFocusNode: _expiryFocusNode,
+                onPickExpiryDate: _pickExpiryDate,
+                onSubmit: _submitForm,
+                selectedStorage: _selectedStorage,
+                onSelectStorage: (loc) => setState(() => _selectedStorage = loc),
               ),
-              const SizedBox(height: 20),
-              ManualEntryFormHelpers.buildLabel(
-                'Shelf Life / Expiry',
-                primaryTextColor,
-              ),
-              Wrap(
-                spacing: 8,
-                children: _expiryOptions.map((opt) {
-                  final isSel =
-                      _selectedExpiryDays == opt['days'] &&
-                      _customExpiryDate == null;
-                  return ChoiceChip(
-                    label: Text(opt['label'] as String),
-                    selected: isSel,
-                    selectedColor: AppColors.warningOrange,
-                    labelStyle: TextStyle(
-                      color: isSel ? Colors.white : primaryTextColor,
-                      fontSize: 12,
-                    ),
-                    onSelected: (_) => setState(() {
-                      _selectedExpiryDays = opt['days'] as int;
-                      _customExpiryDate = null;
-                    }),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-              ManualEntryFormHelpers.buildLabel(
-                'Storage Location',
-                primaryTextColor,
-              ),
-              Row(
-                children:
-                    [
-                      {'name': 'Pantry', 'icon': Icons.inventory_2_rounded},
-                      {'name': 'Fridge', 'icon': Icons.kitchen_rounded},
-                      {'name': 'Freezer', 'icon': Icons.ac_unit_rounded},
-                    ].map((loc) {
-                      final String locName = loc['name'] as String;
-                      final isSel = _selectedStorage == locName;
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: ChoiceChip(
-                            avatar: Icon(
-                              loc['icon'] as IconData,
-                              size: 14,
-                              color: isSel ? Colors.white : primaryTextColor,
-                            ),
-                            label: Text(
-                              locName,
-                              style: TextStyle(
-                                color: isSel ? Colors.white : primaryTextColor,
-                                fontSize: 12,
-                              ),
-                            ),
-                            selected: isSel,
-                            selectedColor: isDark
-                                ? AppColors.darkAiPurple
-                                : AppColors.aiPurple,
-                            onSelected: (_) =>
-                                setState(() => _selectedStorage = locName),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: _submitForm,
-                icon: const Icon(Icons.check_circle_rounded, size: 20),
-                label: const Text('Save to Inventory'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: activeColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 2,
-                ),
-              ),
+              const SizedBox(height: 28),
+              _buildSubmitButton(activeColor),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(Color activeColor) {
+    return ElevatedButton.icon(
+      onPressed: _isSubmitting ? null : _submitForm,
+      icon: _isSubmitting
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.check_circle_rounded, size: 20),
+      label: Text(_isSubmitting ? 'Saving item...' : 'Save to Inventory'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: activeColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 3,
       ),
     );
   }

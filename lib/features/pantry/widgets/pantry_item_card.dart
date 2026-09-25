@@ -48,14 +48,18 @@ class PantryItemCard extends StatelessWidget {
     final categoryIcon = _getCategoryIcon(item.category);
     final locationIcon = _getLocationIcon(item.storageLocation);
 
+    final String qtyAndPriceText = item.estimatedPrice != null && item.estimatedPrice! > 0
+        ? '${item.displayQty} • ₹${item.estimatedPrice!.toStringAsFixed(0)}'
+        : item.displayQty;
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xCC1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.08)
@@ -63,69 +67,73 @@ class PantryItemCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: activeColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: activeColor.withValues(alpha: 0.2),
                     ),
                   ),
-                  child: Icon(categoryIcon, size: 20, color: activeColor),
+                  child: Icon(categoryIcon, size: 18, color: activeColor),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: primaryColor,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Row(
                         children: [
-                          Text(
-                            item.displayQty,
-                            style: TextStyle(
-                              color: secondaryColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: Text(
+                              qtyAndPriceText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: secondaryColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                          Text(
-                            ' • ',
-                            style: TextStyle(
-                              color: secondaryColor,
-                              fontSize: 13,
-                            ),
-                          ),
-                          Icon(locationIcon, size: 12, color: secondaryColor),
-                          const SizedBox(width: 3),
+                          const SizedBox(width: 6),
+                          Icon(locationIcon, size: 11, color: secondaryColor),
+                          const SizedBox(width: 2),
                           Text(
                             item.storageLocation.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: secondaryColor,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ],
@@ -133,15 +141,15 @@ class PantryItemCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
+                    horizontal: 8,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: statusBg,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: statusColor.withValues(alpha: 0.3),
                     ),
@@ -149,13 +157,15 @@ class PantryItemCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(statusIcon, size: 12, color: statusColor),
-                      const SizedBox(width: 4),
+                      Icon(statusIcon, size: 11, color: statusColor),
+                      const SizedBox(width: 3),
                       Text(
                         statusLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: statusColor,
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -164,13 +174,12 @@ class PantryItemCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // Freshness Progress Bar
+            const SizedBox(height: 10),
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
                 value: freshnessProgress,
-                minHeight: 4,
+                minHeight: 3,
                 backgroundColor: isDark
                     ? Colors.white.withValues(alpha: 0.08)
                     : const Color(0xFFE2E8F0),
@@ -190,8 +199,10 @@ class PantryItemCard extends StatelessWidget {
       case 'Vegetables':
         return Icons.eco_rounded;
       case 'Fruits':
+      case 'Fruit':
         return Icons.apple_rounded;
       case 'Grains & Pulses':
+      case 'Grains':
         return Icons.grain_rounded;
       case 'Spices':
         return Icons.local_fire_department_rounded;
