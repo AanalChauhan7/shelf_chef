@@ -36,6 +36,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ShoppingCartScreenState> _cartKey =
+      GlobalKey<ShoppingCartScreenState>();
   int _currentTab = 0; // 0: Home, 1: Pantry, 3: Recipes, 4: Cart
   late UserProfileData _userProfile;
   List<PantryItem> _pantryItems = [];
@@ -77,6 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _handleTabTap(int index) {
     if (index == 0) _fetchPantryItems();
+    if (index == 4) _cartKey.currentState?.reload();
     setState(() => _currentTab = index);
   }
 
@@ -170,7 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(),
               AiRecipeEmptyView(onGenerateRecipes: _openGenerateRecipe),
-              const ShoppingCartScreen(),
+              ShoppingCartScreen(key: _cartKey),
             ],
           ),
           Positioned(
@@ -195,6 +198,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: _fetchPantryItems,
         color: activeColor,
         child: SingleChildScrollView(
+          primary: false,
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),

@@ -22,6 +22,7 @@ class ShoppingCartEmptyView extends StatelessWidget {
     return SafeArea(
       child: Center(
         child: SingleChildScrollView(
+          primary: false,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(

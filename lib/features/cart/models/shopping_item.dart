@@ -16,15 +16,27 @@ class ShoppingItem {
     this.isChecked = false,
   });
 
-  String get displayQtyUnit {
-    if (unit.trim().isEmpty) {
-      return quantity.trim();
+  String get formattedQuantity {
+    final parsed = num.tryParse(quantity);
+    if (parsed != null && parsed == parsed.roundToDouble()) {
+      return parsed.toInt().toString();
     }
-    return '$quantity ${unit.trim()}'.trim();
+    return quantity;
+  }
+
+  String get displayQtyUnit {
+    final q = formattedQuantity.trim();
+    final u = unit.trim();
+    if (u.isEmpty) return q;
+    return '$q $u';
   }
 
   factory ShoppingItem.fromJson(Map<String, dynamic> json) {
-    final rawQty = json['quantity'] ?? json['qty'] ?? json['size'] ?? '1';
+    final rawQty = json['quantity'] ?? json['qty'] ?? json['size'] ?? 1;
+    final qtyStr = (rawQty is num && rawQty == rawQty.roundToDouble())
+        ? rawQty.toInt().toString()
+        : rawQty.toString();
+
     final rawUnit = json['unit'] ?? json['default_unit'] ?? '';
     final rawName = json['name'] ??
         json['display_name'] ??
@@ -43,7 +55,7 @@ class ShoppingItem {
     return ShoppingItem(
       id: rawId.toString(),
       name: rawName.toString(),
-      quantity: rawQty.toString(),
+      quantity: qtyStr,
       unit: rawUnit.toString(),
       itemType: rawType.toString(),
       isChecked: rawChecked == true || rawChecked.toString() == 'true',
