@@ -20,6 +20,45 @@ class CookingIngredientsList extends StatefulWidget {
 
 class _CookingIngredientsListState extends State<CookingIngredientsList> {
   final Map<int, bool> _checked = {};
+  bool _addingToCart = false;
+  bool _addedToCart = false;
+
+  Future<void> _addMissingToCart() async {
+    final missing = widget.ingredients.where((i) => i.type == 'missing').toList();
+    if (missing.isEmpty || _addingToCart) return;
+
+    setState(() => _addingToCart = true);
+    var added = 0;
+
+    for (final ing in missing) {
+      final q = ShoppingApiService.parseQuantity(ing.quantity);
+
+      final ok = await ShoppingApiService.addShoppingItem(
+        name: ing.name.trim(),
+        quantity: q.qty.toString(),
+        unit: q.unit,
+        itemType: 'recipe',
+      );
+      if (ok) added++;
+    }
+
+    if (mounted) {
+      setState(() {
+        _addingToCart = false;
+        _addedToCart = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            added > 0
+                ? 'Added $added missing ingredient(s) to Cart!'
+                : 'Ingredients are already in Cart.',
+          ),
+          backgroundColor: AppColors.secondaryGreen,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +81,8 @@ class _CookingIngredientsListState extends State<CookingIngredientsList> {
         ),
       ),
       child: Column(
-        children: List.generate(widget.ingredients.length, (index) {
+        children: [
+          ...List.generate(widget.ingredients.length, (index) {
           final ing = widget.ingredients[index];
           final isChecked = _checked[index] ?? false;
 
@@ -110,7 +150,45 @@ class _CookingIngredientsListState extends State<CookingIngredientsList> {
             ),
           );
         }),
-      ),
-    );
-  }
+        if (widget.ingredients.any((i) => i.type == 'missing')) ...[
+          const Divider(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _addingToCart ? null : _addMissingToCart,
+                icon: _addingToCart
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        _addedToCart
+                            ? Icons.check_circle_rounded
+                            : Icons.add_shopping_cart_rounded,
+                        size: 18,
+                      ),
+                label: Text(
+                  _addedToCart
+                      ? 'Added Missing to Cart!'
+                      : 'Add Missing Ingredients to Cart',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.warningOrange,
+                  side: const BorderSide(color: AppColors.warningOrange),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+}
 }

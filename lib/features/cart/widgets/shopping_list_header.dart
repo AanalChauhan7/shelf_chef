@@ -65,6 +65,9 @@ class ShoppingListHeader extends StatelessWidget {
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: activeColor,
+        // The app theme gives ElevatedButtons an infinite minimum width,
+        // which crashes layout inside a Row (this caused the blank Cart).
+        minimumSize: const Size(0, 40),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),

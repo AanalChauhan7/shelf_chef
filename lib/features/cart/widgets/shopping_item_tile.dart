@@ -26,7 +26,8 @@ class ShoppingItemTile extends StatelessWidget {
     final cardBg = isDark ? const Color(0xCC1E293B) : Colors.white;
 
     final itemName = item.name.isEmpty ? 'Item' : item.name;
-    final itemType = item.itemType.isEmpty ? 'Grocery' : item.itemType;
+    final rawType = item.itemType.isEmpty ? 'Grocery' : item.itemType;
+    final itemType = rawType[0].toUpperCase() + rawType.substring(1);
     final isChecked = item.isChecked;
 
     return Container(

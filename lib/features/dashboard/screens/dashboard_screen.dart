@@ -38,6 +38,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<RecipesTabScreenState> _recipesKey =
       GlobalKey<RecipesTabScreenState>();
   int _currentTab = 0; // 0: Home, 1: Pantry, 3: Recipes, 4: Cart
+  // Tabs are built lazily so one failing tab can't blank the whole screen.
+  final Set<int> _visitedTabs = {0};
   late UserProfileData _userProfile;
   List<PantryItem> _pantryItems = [];
 
@@ -95,8 +97,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     if (index == 3) _recipesKey.currentState?.reload();
     if (index == 4) _cartKey.currentState?.reload();
-    setState(() => _currentTab = index);
+    setState(() {
+      _currentTab = index;
+      _visitedTabs.add(index == 2 ? 0 : index);
+    });
   }
+
+  Widget _lazyTab(int index, Widget Function() build) =>
+      _visitedTabs.contains(index) ? build() : const SizedBox.shrink();
 
   void _openAddModal() => AddQuickModal.show(
         context,
@@ -115,7 +123,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (result == true && mounted) {
       _fetchPantryItems();
-      setState(() => _currentTab = 1);
+      setState(() {
+        _currentTab = 1;
+        _visitedTabs.add(1);
+      });
     }
   }
 
@@ -126,7 +137,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (newItem != null && mounted) {
       _fetchPantryItems();
-      setState(() => _currentTab = 1);
+      setState(() {
+        _currentTab = 1;
+        _visitedTabs.add(1);
+      });
     }
   }
 
@@ -187,21 +201,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 onRefresh: _refreshHome,
                 onOpenAlerts: _openAlertsDialog,
                 onOpenProfile: _openProfileDrawer,
-                onViewAllExpiring: () => setState(() => _currentTab = 1),
+                onViewAllExpiring: () => setState(() {
+        _currentTab = 1;
+        _visitedTabs.add(1);
+      }),
                 onStartCooking: _openGenerateRecipe,
               ),
-              PantryEmptyView(
-                onScanReceipt: _openReceiptScanner,
-                onAddItemManually: _openManualEntry,
+              _lazyTab(
+                1,
+                () => PantryEmptyView(
+                  onScanReceipt: _openReceiptScanner,
+                  onAddItemManually: _openManualEntry,
+                ),
               ),
               const SizedBox(),
-              RecipesTabScreen(
-                key: _recipesKey,
-                peopleCount: _userProfile.familyMembers,
-                language: _userProfile.preferredLanguage,
-                onGenerateRecipes: _openGenerateRecipe,
+              _lazyTab(
+                3,
+                () => RecipesTabScreen(
+                  key: _recipesKey,
+                  peopleCount: _userProfile.familyMembers,
+                  language: _userProfile.preferredLanguage,
+                  onGenerateRecipes: _openGenerateRecipe,
+                ),
               ),
-              ShoppingCartScreen(key: _cartKey),
+              _lazyTab(4, () => ShoppingCartScreen(key: _cartKey)),
             ],
           ),
           Positioned(

@@ -71,14 +71,25 @@ class _SaveRecipeButtonState extends State<SaveRecipeButton> {
       widget.onChanged?.call(updated);
 
       if (mounted) {
+        final hasMissing = !wasSaved && _recipe.missingIngredients.isNotEmpty;
+        final baseMsg = wasSaved
+            ? AppLanguageService.tr('recipe_removed', widget.language)
+            : AppLanguageService.tr('recipe_saved', widget.language);
+        final fullMsg = hasMissing
+            ? '$baseMsg • Missing ingredients added to Cart'
+            : baseMsg;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              wasSaved
-                  ? AppLanguageService.tr('recipe_removed', widget.language)
-                  : AppLanguageService.tr('recipe_saved', widget.language),
-            ),
-            duration: const Duration(seconds: 2),
+            content: Text(fullMsg),
+            duration: const Duration(seconds: 3),
+            action: hasMissing
+                ? SnackBarAction(
+                    label: 'VIEW CART',
+                    textColor: Colors.white,
+                    onPressed: () {},
+                  )
+                : null,
           ),
         );
       }

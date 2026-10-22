@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/recipe_store.dart';
 import '../../recipes/widgets/recipes_status_views.dart';
 import '../models/shopping_item.dart';
 import '../widgets/add_shopping_item_dialog.dart';
@@ -55,6 +56,12 @@ class ShoppingCartScreenState extends State<ShoppingCartScreen> {
         _error = e.message;
         _isLoading = false;
       });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = "Couldn't read your shopping list. Please try again.";
+        _isLoading = false;
+      });
     }
   }
 
@@ -68,13 +75,40 @@ class ShoppingCartScreenState extends State<ShoppingCartScreen> {
   }
 
   Future<void> _generateList() async {
+    final saved = RecipeStore.instance.saved;
+    String? recipeName;
+    if (saved.isNotEmpty) {
+      if (saved.length == 1) {
+        recipeName = saved.first.name;
+      } else {
+        recipeName = await showDialog<String>(
+          context: context,
+          builder: (ctx) => SimpleDialog(
+            title: const Text('Generate missing items for:'),
+            children: saved
+                .map(
+                  (r) => SimpleDialogOption(
+                    onPressed: () => Navigator.pop(ctx, r.name),
+                    child: Text(r.name),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      }
+    }
+
+    if (saved.isNotEmpty && recipeName == null) return;
+
     setState(() => _busy = true);
-    final error = await ShoppingApiService.generateShoppingList();
+    final error = await ShoppingApiService.generateShoppingList(
+      recipeName: recipeName,
+    );
     if (!mounted) return;
     if (error == null) await _loadShoppingList(showLoading: false);
     if (!mounted) return;
     setState(() => _busy = false);
-    _showMessage(error ?? 'Shopping list updated from your pantry.');
+    _showMessage(error ?? 'Missing ingredients added to shopping list!');
   }
 
   Future<void> _confirmClearList() async {
@@ -135,7 +169,7 @@ class ShoppingCartScreenState extends State<ShoppingCartScreen> {
     if (_isLoading || (_busy && _items.isEmpty)) return _buildLoadingView();
     if (_error != null && _items.isEmpty) {
       return SafeArea(
-        child: RecipesErrorView(message: _error!, onRetry: _loadShoppingList),
+        child: RecipesErrorView(message: _error!, onRetry: () => _loadShoppingList()),
       );
     }
     if (_items.isEmpty) {

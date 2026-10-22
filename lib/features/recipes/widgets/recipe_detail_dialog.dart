@@ -135,6 +135,50 @@ class RecipeDetailDialog extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (recipe.missingIngredients.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.warningOrange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.warningOrange.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.shopping_bag_outlined,
+                                    size: 16,
+                                    color: AppColors.warningOrange,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${recipe.missingIngredients.length} missing ingredient(s)',
+                                    style: const TextStyle(
+                                      color: AppColors.warningOrange,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                recipe.missingIngredients.map((m) => m.displayString).join(', '),
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -144,6 +188,26 @@ class RecipeDetailDialog extends StatelessWidget {
         ),
       ),
       actions: [
+        if (recipe.missingIngredients.isNotEmpty)
+          IconButton(
+            tooltip: 'Add missing to cart',
+            icon: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.warningOrange),
+            onPressed: () async {
+              final count = await ShoppingApiService.addMissingIngredientsFromRecipe(recipe);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      count > 0
+                          ? 'Added $count missing item(s) to Cart!'
+                          : 'Items are already in Cart.',
+                    ),
+                    backgroundColor: AppColors.secondaryGreen,
+                  ),
+                );
+              }
+            },
+          ),
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text(

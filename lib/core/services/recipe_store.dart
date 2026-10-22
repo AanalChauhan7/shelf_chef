@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/recipes/models/generated_recipe.dart';
 import 'app_language_service.dart';
 import 'recipe_api_service.dart';
+import 'shopping_api_service.dart';
 
 /// App-wide holder for the pantry-based recipe suggestions (`GET /recipes`)
 /// and the user's saved recipes (`GET /saved-recipes`).
@@ -234,6 +235,12 @@ class RecipeStore extends ChangeNotifier {
       _applySaved();
       await _writeSavedCache(_saved);
       notifyListeners();
+
+      // When a recipe is saved, add any missing ingredients to the shopping cart
+      unawaited(
+        ShoppingApiService.addMissingIngredientsFromRecipe(recipe)
+            .catchError((_) => 0),
+      );
 
       return savedRecipe;
     }

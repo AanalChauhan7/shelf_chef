@@ -1,4 +1,5 @@
 import '../../features/cart/models/shopping_item.dart';
+import '../../features/recipes/models/generated_recipe.dart';
 import 'api_client.dart';
 
 /// Thrown when the shopping list can't be loaded; [message] is user-safe.
@@ -45,10 +46,14 @@ class ShoppingApiService {
         "Couldn't load your shopping list (server error ${res.statusCode}).",
       );
     }
-    return ApiClient.extractList(res.data, _listKeys)
-        .where((i) => i != null)
-        .map(_parseItem)
-        .toList();
+    final items = <ShoppingItem>[];
+    for (final raw in ApiClient.extractList(res.data, _listKeys)) {
+      if (raw == null) continue;
+      try {
+        items.add(_parseItem(raw));
+      } catch (_) {/* skip a malformed row instead of failing the list */}
+    }
+    return items;
   }
 
   static ShoppingItem _parseItem(dynamic raw) {
@@ -76,6 +81,7 @@ class ShoppingApiService {
         'name': name,
         'quantity': num.tryParse(quantity) ?? 1,
         'unit': unit,
+        if (itemType.toLowerCase() == 'recipe') 'source': 'recipe',
       },
     );
     return res != null && res.ok;
@@ -99,16 +105,81 @@ class ShoppingApiService {
     return res != null && res.ok;
   }
 
-  /// Removes every item from the list.
+  /// Removes every item from the list using `DELETE /shopping-list/clear`.
   static Future<bool> clearShoppingList() async {
     final res = await ApiClient.request('DELETE', '$_base/clear');
     return res != null && res.ok;
   }
 
-  /// Asks the server to build the list from the pantry. Returns null on
-  /// success, otherwise a message that is safe to show to the user.
-  static Future<String?> generateShoppingList() async {
-    final res = await ApiClient.request('POST', '$_base/generate');
+  /// Splits a recipe quantity such as `1 cup`, `1/2 tsp`, `1 1/2 kg`, `250g`
+  /// or `a pinch` into a number and a unit.
+  static ({num qty, String unit}) parseQuantity(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return (qty: 1, unit: '');
+
+    final m = RegExp(r'^(\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?|\.\d+)\s*(.*)$')
+        .firstMatch(text);
+    if (m == null) return (qty: 1, unit: text); // e.g. "a pinch", "to taste"
+
+    final numPart = m.group(1)!;
+    num qty = 1;
+    if (numPart.contains('/')) {
+      final parts = numPart.split(RegExp(r'\s+'));
+      final frac = parts.last.split('/');
+      final whole = parts.length == 2 ? (num.tryParse(parts.first) ?? 0) : 0;
+      final d = num.tryParse(frac[1]) ?? 1;
+      qty = whole + (num.tryParse(frac[0]) ?? 1) / (d == 0 ? 1 : d);
+    } else {
+      qty = num.tryParse(numPart) ?? 1;
+    }
+    if (qty <= 0) qty = 1;
+    return (qty: qty, unit: (m.group(2) ?? '').trim());
+  }
+
+  /// Adds the missing ingredients of [recipe] with `POST /shopping-list/add`
+  /// (one request per ingredient, skipping ones already on the list).
+  /// Returns how many items were added.
+  static Future<int> addMissingIngredientsFromRecipe(
+    GeneratedRecipe recipe,
+  ) async {
+    if (recipe.missingIngredients.isEmpty) return 0;
+
+    var existing = <String>{};
+    try {
+      existing = (await fetchShoppingList())
+          .map((i) => i.name.trim().toLowerCase())
+          .toSet();
+    } catch (_) {/* can't check duplicates; just add */}
+
+    var addedCount = 0;
+    for (final ing in recipe.missingIngredients) {
+      final name = ing.name.trim();
+      if (name.isEmpty || existing.contains(name.toLowerCase())) continue;
+
+      final q = parseQuantity(ing.quantity);
+      final ok = await addShoppingItem(
+        name: name,
+        quantity: q.qty.toString(),
+        unit: q.unit,
+        itemType: 'recipe',
+      );
+      if (ok) {
+        addedCount++;
+        existing.add(name.toLowerCase());
+      }
+    }
+    return addedCount;
+  }
+
+  /// Asks the server to generate shopping items for [recipeName] via `POST /shopping-list/generate`.
+  static Future<String?> generateShoppingList({String? recipeName}) async {
+    final effectiveName = recipeName ?? 'Aloo Tomato Nu Shaak';
+    final res = await ApiClient.request(
+      'POST',
+      '$_base/generate',
+      body: {'recipe': effectiveName},
+      timeout: const Duration(seconds: 30),
+    );
     if (res == null) {
       return "Couldn't reach the server. Try again in a moment.";
     }
