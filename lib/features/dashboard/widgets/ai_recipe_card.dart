@@ -1,32 +1,28 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
-import '../../recipes/screens/generate_recipe_screen.dart';
+import '../../../core/services/recipe_store.dart';
+import '../../recipes/models/generated_recipe.dart';
+import 'ai_recipe_card_parts.dart';
 
 /// Premium, futuristic AI Recipe Suggestion Card with high-end food preview,
 /// glowing purple/emerald accents, responsive wrapping, and zero overflow errors.
+///
+/// Shows one of the top-3 suggested recipes from [RecipeStore]. It never fetches on its
+/// own after the first load: new suggestions only arrive when the user taps
+/// reload on the Recipes tab.
 class AiRecipeCard extends StatelessWidget {
-  const AiRecipeCard({super.key});
+  /// Opens the "Generate AI Recipe" page.
+  final VoidCallback onStartCooking;
+
+  const AiRecipeCard({super.key, required this.onStartCooking});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
-
     final aiPurple = isDark ? AppColors.darkAiPurple : AppColors.aiPurple;
-    final emeraldAccent = isDark
-        ? AppColors.darkAccent
-        : AppColors.primaryGreen;
-
-    final cardBgColor = isDark
-        ? const Color(0xCC1E293B)
-        : const Color(0xF2FFFFFF);
-    final borderColor = aiPurple.withValues(alpha: isDark ? 0.35 : 0.25);
+    final emeraldAccent =
+        isDark ? AppColors.darkAccent : AppColors.primaryGreen;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -34,37 +30,24 @@ class AiRecipeCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cardBgColor,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: borderColor, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: aiPurple.withValues(alpha: 0.15),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeaderSection(
-                aiPurple,
-                emeraldAccent,
-                primaryTextColor,
-                secondaryTextColor,
-              ),
-              const SizedBox(height: 16),
-              _buildBadgesSection(aiPurple, emeraldAccent),
-              const SizedBox(height: 18),
-              _buildStartCookingActionButton(context),
-            ],
+          decoration: _cardDecoration(isDark, aiPurple),
+          child: ListenableBuilder(
+            listenable: RecipeStore.instance,
+            builder: (context, _) {
+              final recipe = RecipeStore.instance.featured;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeaderSection(recipe, isDark, aiPurple, emeraldAccent),
+                  const SizedBox(height: 16),
+                  _buildBadgesSection(recipe, aiPurple, emeraldAccent),
+                  const SizedBox(height: 18),
+                  AiRecipeCookButton(
+                    onPressed: onStartCooking,
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -73,91 +56,56 @@ class AiRecipeCard extends StatelessWidget {
 
   // --- Private Sub-Widgets Defined Below Build Function ---
 
+  BoxDecoration _cardDecoration(bool isDark, Color aiPurple) {
+    return BoxDecoration(
+      color: isDark ? const Color(0xCC1E293B) : const Color(0xF2FFFFFF),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(
+        color: aiPurple.withValues(alpha: isDark ? 0.35 : 0.25),
+        width: 1.2,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: aiPurple.withValues(alpha: 0.15),
+          blurRadius: 20,
+          spreadRadius: 2,
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeaderSection(
+    GeneratedRecipe? recipe,
+    bool isDark,
     Color aiPurple,
     Color emeraldAccent,
-    Color primaryTextColor,
-    Color secondaryTextColor,
   ) {
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: aiPurple.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Image.asset(
-              'assets/images/onboarding_recipe.jpg',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: aiPurple.withValues(alpha: 0.2),
-                  child: const Center(
-                    child: Text('🍝', style: TextStyle(fontSize: 32)),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+        AiRecipePreviewImage(recipe: recipe, aiPurple: aiPurple),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      aiPurple.withValues(alpha: 0.2),
-                      emeraldAccent.withValues(alpha: 0.15),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: aiPurple.withValues(alpha: 0.4),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.auto_awesome, size: 13, color: aiPurple),
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(
-                        'AI RECIPE • 98% MATCH',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: aiPurple,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.6,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              AiRecipeMatchBadge(
+                match: recipe?.matchPercent ?? '',
+                aiPurple: aiPurple,
+                emeraldAccent: emeraldAccent,
               ),
               const SizedBox(height: 6),
               Text(
-                'Kathiyawadi Kadhi & Sabzi',
+                _titleText(recipe),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -169,7 +117,7 @@ class AiRecipeCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Quick 15-min gourmet meal',
+                _subtitleText(recipe),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTextStyles.bodySmall(color: secondaryTextColor),
@@ -181,82 +129,51 @@ class AiRecipeCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBadgesSection(Color aiPurple, Color emeraldAccent) {
+  Widget _buildBadgesSection(
+    GeneratedRecipe? recipe,
+    Color aiPurple,
+    Color emeraldAccent,
+  ) {
+    if (recipe == null) return const SizedBox.shrink();
+    final pantryCount = recipe.availableIngredients.length;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        _recipeBadge('⏱️ 15 Mins', aiPurple),
-        _recipeBadge('👨‍🍳 Easy Prep', emeraldAccent),
-        _recipeBadge('♻️ Uses 3 Expiring Items', AppColors.warningOrange),
+        AiRecipeInfoBadge(label: '⏱️ ${recipe.prepTime}', color: aiPurple),
+        AiRecipeInfoBadge(
+          label: '👨‍🍳 ${recipe.difficulty} Prep',
+          color: emeraldAccent,
+        ),
+        if (pantryCount > 0)
+          AiRecipeInfoBadge(
+            label: '♻️ Uses $pantryCount Pantry Items',
+            color: AppColors.warningOrange,
+          ),
       ],
     );
   }
 
-  Widget _buildStartCookingActionButton(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 48,
-      decoration: BoxDecoration(
-        gradient: AppGradients.primaryGradient,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondaryGreen.withValues(alpha: 0.45),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const GenerateRecipeScreen()),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Start Cooking Mode',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
-          ],
-        ),
-      ),
-    );
+  // --- Text helpers ---
+
+  String _titleText(GeneratedRecipe? recipe) {
+    if (recipe != null) return recipe.title;
+    final store = RecipeStore.instance;
+    final waiting = store.suggestedLoading ||
+        (!store.suggestedLoaded && store.suggestedError == null);
+    return waiting ? 'Finding your top match…' : 'No recipe match yet';
   }
 
-  Widget _recipeBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+  String _subtitleText(GeneratedRecipe? recipe) {
+    if (recipe != null) {
+      final text = recipe.description.trim();
+      // Skip the model's "Delicious recipe." placeholder.
+      return text.isEmpty || text == 'Delicious recipe.'
+          ? '${recipe.category} • ${recipe.calories}'
+          : text;
+    }
+    return RecipeStore.instance.suggestedLoading
+        ? 'Checking what is in your pantry'
+        : 'Add pantry items to get suggestions';
   }
 }
