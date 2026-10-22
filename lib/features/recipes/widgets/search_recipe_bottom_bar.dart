@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 
 /// Bottom action bar of the Generate Recipe screen ("Search Recipe with AI").
 class SearchRecipeBottomBar extends StatelessWidget {
   final bool isDark;
   final bool isSearching;
+  final String language;
   final VoidCallback onPressed;
 
   const SearchRecipeBottomBar({
@@ -12,6 +14,7 @@ class SearchRecipeBottomBar extends StatelessWidget {
     required this.isDark,
     required this.isSearching,
     required this.onPressed,
+    this.language = 'English',
   });
 
   @override
@@ -48,10 +51,10 @@ class SearchRecipeBottomBar extends StatelessWidget {
             child: Container(
               alignment: Alignment.center,
               child: isSearching
-                  ? const Row(
+                  ? Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        SizedBox(
+                        const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
@@ -59,10 +62,10 @@ class SearchRecipeBottomBar extends StatelessWidget {
                             strokeWidth: 2.5,
                           ),
                         ),
-                        SizedBox(width: 12),
+                        const SizedBox(width: 12),
                         Text(
-                          'Chef is Thinking...',
-                          style: TextStyle(
+                          AppLanguageService.tr('chef_thinking', language),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -70,18 +73,18 @@ class SearchRecipeBottomBar extends StatelessWidget {
                         ),
                       ],
                     )
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.auto_awesome_rounded,
                           color: Colors.white,
                           size: 22,
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Text(
-                          'Search Recipe with AI',
-                          style: TextStyle(
+                          AppLanguageService.tr('search_ai', language),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

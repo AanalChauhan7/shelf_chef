@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 import '../widgets/cooking_ingredients_list.dart';
 import '../widgets/cooking_steps_list.dart';
@@ -9,11 +10,13 @@ import '../widgets/cooking_tts_bar.dart';
 class CookingGuideScreen extends StatefulWidget {
   final GeneratedRecipe recipe;
   final int peopleCount;
+  final String language;
 
   const CookingGuideScreen({
     super.key,
     required this.recipe,
     required this.peopleCount,
+    this.language = 'English',
   });
 
   @override
@@ -22,6 +25,16 @@ class CookingGuideScreen extends StatefulWidget {
 
 class _CookingGuideScreenState extends State<CookingGuideScreen> {
   bool _isSpeaking = false;
+  late GeneratedRecipe _localizedRecipe;
+
+  @override
+  void initState() {
+    super.initState();
+    _localizedRecipe = AppLanguageService.translateRecipe(
+      widget.recipe,
+      widget.language,
+    );
+  }
 
   @override
   void dispose() {
@@ -37,41 +50,44 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
     }
 
     final fullText =
-        '${widget.recipe.title} ${widget.recipe.instructions.join(' ')}';
+        '${_localizedRecipe.title} ${_localizedRecipe.instructions.join(' ')}';
     final detectedLang = TtsService.detectScriptLanguage(fullText);
+    final effectiveLang = (detectedLang == 'English' && widget.language != 'English')
+        ? widget.language
+        : detectedLang;
 
     final StringBuffer buffer = StringBuffer();
-    final isGu = detectedLang == 'Gujarati';
-    final isHi = detectedLang == 'Hindi';
+    final isGu = effectiveLang == 'Gujarati';
+    final isHi = effectiveLang == 'Hindi';
     final ingHeader = isGu
         ? 'સામગ્રી: '
         : (isHi ? 'सामग्री: ' : 'Ingredients: ');
     final stepHeader = isGu
         ? 'રસોઈ ના તબક્કા: '
-        : (isHi ? 'बनाने की विधि: ' : 'Cooking Steps: ');
+        : (isHi ? 'બનાને કી વિધિ: ' : 'Cooking Steps: ');
 
-    buffer.write('${widget.recipe.title}. $ingHeader');
-    final ings = widget.recipe.allIngredientDetails;
+    buffer.write('${_localizedRecipe.title}. $ingHeader');
+    final ings = _localizedRecipe.allIngredientDetails;
     for (int i = 0; i < ings.length; i++) {
       buffer.write('${i + 1}. ${ings[i].displayString}. ');
     }
     buffer.write(stepHeader);
-    for (int i = 0; i < widget.recipe.instructions.length; i++) {
+    for (int i = 0; i < _localizedRecipe.instructions.length; i++) {
       buffer.write(
-        '${isGu ? 'તબક્કો' : (isHi ? 'चरण' : 'Step')} ${i + 1}. ${widget.recipe.instructions[i]}. ',
+        '${isGu ? 'તબક્કો' : (isHi ? 'चरण' : 'Step')} ${i + 1}. ${_localizedRecipe.instructions[i]}. ',
       );
     }
 
-    if (widget.recipe.chefTip.isNotEmpty) {
+    if (_localizedRecipe.chefTip.isNotEmpty) {
       final tipHeader = isGu
           ? 'રસોઈયા ની ટીપ: '
           : (isHi ? 'शेफ टिप: ' : 'Chef Tip: ');
-      buffer.write('$tipHeader ${widget.recipe.chefTip}');
+      buffer.write('$tipHeader ${_localizedRecipe.chefTip}');
     }
 
     await TtsService.speak(
       buffer.toString(),
-      language: detectedLang,
+      language: effectiveLang,
       onStart: () {
         if (mounted) setState(() => _isSpeaking = true);
       },
@@ -91,6 +107,10 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
         ? AppColors.darkTextSecondary
         : AppColors.textSecondary;
 
+    final personUnit = widget.peopleCount == 1
+        ? AppLanguageService.tr('person', widget.language)
+        : AppLanguageService.tr('people', widget.language);
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
       appBar: AppBar(
@@ -101,7 +121,7 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Cooking Guide',
+          AppLanguageService.tr('cooking_guide', widget.language),
           style: TextStyle(
             color: primaryTextColor,
             fontSize: 18,
@@ -117,7 +137,7 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
               color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
               size: 26,
             ),
-            tooltip: 'Read Recipe Aloud (TTS)',
+            tooltip: AppLanguageService.tr('read_aloud_tooltip', widget.language),
           ),
           const SizedBox(width: 8),
         ],
@@ -133,17 +153,16 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                   child: Stack(
                     children: [
                       Image.network(
-                        widget.recipe.displayImageUrl,
+                        _localizedRecipe.displayImageUrl,
                         height: 200,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (_, error, stackTrace) => Container(
                           height: 200,
-                          color:
-                              (isDark
-                                      ? AppColors.darkAiPurple
-                                      : AppColors.aiPurple)
-                                  .withValues(alpha: 0.2),
+                          color: (isDark
+                                  ? AppColors.darkAiPurple
+                                  : AppColors.aiPurple)
+                              .withValues(alpha: 0.2),
                           alignment: Alignment.center,
                           child: const Icon(
                             Icons.restaurant_rounded,
@@ -165,7 +184,7 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${widget.peopleCount} Portions',
+                            '${widget.peopleCount} $personUnit',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -179,7 +198,7 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  widget.recipe.title,
+                  _localizedRecipe.title,
                   style: TextStyle(
                     color: primaryTextColor,
                     fontSize: 22,
@@ -188,24 +207,22 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  widget.recipe.description,
+                  _localizedRecipe.description,
                   style: TextStyle(color: secondaryTextColor, fontSize: 13),
                 ),
-                if (widget.recipe.chefTip.isNotEmpty) ...[
+                if (_localizedRecipe.chefTip.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color:
-                          (isDark ? AppColors.darkAiPurple : AppColors.aiPurple)
-                              .withValues(alpha: 0.12),
+                      color: (isDark ? AppColors.darkAiPurple : AppColors.aiPurple)
+                          .withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color:
-                            (isDark
-                                    ? AppColors.darkAiPurple
-                                    : AppColors.aiPurple)
-                                .withValues(alpha: 0.3),
+                        color: (isDark
+                                ? AppColors.darkAiPurple
+                                : AppColors.aiPurple)
+                            .withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -221,9 +238,9 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Chef\'s Pro Tip',
-                                style: TextStyle(
+                              Text(
+                                AppLanguageService.tr('chef_pro_tip', widget.language),
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                   color: AppColors.warningOrange,
@@ -231,7 +248,7 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                widget.recipe.chefTip,
+                                _localizedRecipe.chefTip,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: primaryTextColor,
@@ -245,15 +262,22 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-                _buildSectionHeader('Ingredients List', isDark),
+                _buildSectionHeader(
+                  AppLanguageService.tr('ingredients_list', widget.language),
+                  isDark,
+                ),
                 const SizedBox(height: 12),
                 CookingIngredientsList(
-                  ingredients: widget.recipe.allIngredientDetails,
+                  ingredients: _localizedRecipe.allIngredientDetails,
+                  language: widget.language,
                 ),
                 const SizedBox(height: 24),
-                _buildSectionHeader('Cooking Steps', isDark),
+                _buildSectionHeader(
+                  AppLanguageService.tr('cooking_steps', widget.language),
+                  isDark,
+                ),
                 const SizedBox(height: 12),
-                CookingStepsList(steps: widget.recipe.instructions),
+                CookingStepsList(steps: _localizedRecipe.instructions),
                 const SizedBox(height: 80),
               ],
             ),

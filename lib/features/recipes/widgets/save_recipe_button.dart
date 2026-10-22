@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 
 /// Bookmark button that saves / un-saves a recipe through the
 /// `/saved-recipes` API and reports the updated recipe via [onChanged].
 class SaveRecipeButton extends StatefulWidget {
   final GeneratedRecipe recipe;
+  final String language;
   final ValueChanged<GeneratedRecipe>? onChanged;
 
-  const SaveRecipeButton({super.key, required this.recipe, this.onChanged});
+  const SaveRecipeButton({
+    super.key,
+    required this.recipe,
+    this.language = 'English',
+    this.onChanged,
+  });
 
   @override
   State<SaveRecipeButton> createState() => _SaveRecipeButtonState();
@@ -40,7 +47,11 @@ class _SaveRecipeButtonState extends State<SaveRecipeButton> {
       widget.onChanged?.call(_recipe);
       messenger.showSnackBar(
         SnackBar(
-          content: Text(wasSaved ? 'Removed from saved recipes' : 'Recipe saved'),
+          content: Text(
+            wasSaved
+                ? AppLanguageService.tr('recipe_removed', widget.language)
+                : AppLanguageService.tr('recipe_saved', widget.language),
+          ),
         ),
       );
     } on RecipeApiException catch (e) {
@@ -68,7 +79,11 @@ class _SaveRecipeButtonState extends State<SaveRecipeButton> {
               saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
               size: 18,
             ),
-      label: Text(saved ? 'Saved' : 'Save'),
+      label: Text(
+        saved
+            ? AppLanguageService.tr('saved', widget.language)
+            : AppLanguageService.tr('save', widget.language),
+      ),
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
         side: BorderSide(color: color.withValues(alpha: 0.5)),

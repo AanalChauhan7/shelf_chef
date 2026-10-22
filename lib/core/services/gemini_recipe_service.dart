@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../features/recipes/models/generated_recipe.dart';
 import '../../features/recipes/models/ingredient_item.dart';
+import 'app_language_service.dart';
 import 'recipe_fallback_engine.dart';
 
 /// Service calling Gemini AI to generate recipes matching the TV show host persona.
@@ -99,11 +100,14 @@ If, and only if, none of the user's ingredients can reasonably form a dish in a 
     try {
       if (apiKey.startsWith('AIzaSyDemo')) {
         await Future.delayed(const Duration(milliseconds: 900));
-        return RecipeFallbackEngine.getFallbackRecipes(
+        final fallbacks = RecipeFallbackEngine.getFallbackRecipes(
           ingredients,
           peopleCount,
           preferredLanguage,
         );
+        return fallbacks
+            .map((r) => AppLanguageService.translateRecipe(r, preferredLanguage))
+            .toList();
       }
 
       final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
@@ -126,6 +130,7 @@ If, and only if, none of the user's ingredients can reasonably form a dish in a 
         if (list.isNotEmpty) {
           return list
               .map((j) => GeneratedRecipe.fromJson(j as Map<String, dynamic>))
+              .map((r) => AppLanguageService.translateRecipe(r, preferredLanguage))
               .toList();
         }
       }
@@ -135,10 +140,13 @@ If, and only if, none of the user's ingredients can reasonably form a dish in a 
       }
     }
 
-    return RecipeFallbackEngine.getFallbackRecipes(
+    final fallbacks = RecipeFallbackEngine.getFallbackRecipes(
       ingredients,
       peopleCount,
       preferredLanguage,
     );
+    return fallbacks
+        .map((r) => AppLanguageService.translateRecipe(r, preferredLanguage))
+        .toList();
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../../../core/services/gemini_recipe_service.dart';
 import '../models/generated_recipe.dart';
 import '../models/ingredient_item.dart';
@@ -71,25 +72,37 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
   void _searchRecipeWithAi() async {
     if (_ingredients.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least 1 ingredient to search recipes.'),
+        SnackBar(
+          content: Text(
+            AppLanguageService.tr('add_ingredient_warning', _selectedLanguage),
+          ),
         ),
       );
       return;
     }
 
     setState(() => _isSearching = true);
-    var title = 'Chef Recipes';
-    var recipes = await _fetchRecipesFromApi();
+
+    // Call Gemini AI recipe generator with the user's custom ingredients and selected language
+    List<GeneratedRecipe> recipes = await GeminiRecipeService.generateRecipes(
+      ingredients: _ingredients,
+      peopleCount: _peopleCount,
+      preferredLanguage: _selectedLanguage,
+    );
+
+    // If generation returned empty, fall back to API (with auto-translation)
     if (recipes.isEmpty) {
-      // Server unreachable: fall back to on-device suggestions.
-      title = 'Offline Suggestions';
-      recipes = await GeminiRecipeService.generateRecipes(
-        ingredients: _ingredients,
-        peopleCount: _peopleCount,
-        preferredLanguage: _selectedLanguage,
-      );
+      final apiRecipes = await _fetchRecipesFromApi();
+      recipes = apiRecipes
+          .map((r) => AppLanguageService.translateRecipe(r, _selectedLanguage))
+          .toList();
     }
+
+    // Double-check all recipes are in the selected language
+    recipes = recipes
+        .map((r) => AppLanguageService.translateRecipe(r, _selectedLanguage))
+        .toList();
+
     if (!mounted) return;
     setState(() => _isSearching = false);
 
@@ -98,7 +111,8 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
       peopleCount: _peopleCount,
       ingredients: _ingredients,
       recipes: recipes,
-      title: title,
+      language: _selectedLanguage,
+      title: AppLanguageService.tr('chef_recipes', _selectedLanguage),
     );
   }
 
@@ -136,7 +150,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Generate AI Recipe',
+          AppLanguageService.tr('generate_recipe', _selectedLanguage),
           style: TextStyle(
             color: primaryTextColor,
             fontSize: 18,
@@ -178,7 +192,10 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                     ),
                     children: [
                       Text(
-                        'Customize your ingredients, portions & language preference to find zero-waste recipes.',
+                        AppLanguageService.tr(
+                          'generate_recipe_subtitle',
+                          _selectedLanguage,
+                        ),
                         style: TextStyle(
                           color: secondaryTextColor,
                           fontSize: 13,
@@ -195,6 +212,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                       PeopleCounterCard(
                         count: _peopleCount,
                         defaultFamilyCount: widget.initialPeopleCount,
+                        language: _selectedLanguage,
                         onChanged: (newCount) {
                           setState(() => _peopleCount = newCount);
                         },
@@ -202,6 +220,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                       const SizedBox(height: 16),
                       IngredientInputSection(
                         ingredients: _ingredients,
+                        language: _selectedLanguage,
                         onChanged: (newList) {
                           setState(() => _ingredients = newList);
                         },
@@ -213,6 +232,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                 SearchRecipeBottomBar(
                   isDark: isDark,
                   isSearching: _isSearching,
+                  language: _selectedLanguage,
                   onPressed: _searchRecipeWithAi,
                 ),
               ],

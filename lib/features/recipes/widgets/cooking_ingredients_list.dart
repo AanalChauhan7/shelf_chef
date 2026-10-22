@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 
 /// Interactive ingredient checklist widget for cooking guide.
 class CookingIngredientsList extends StatefulWidget {
   final List<RecipeIngredientDetail> ingredients;
+  final String language;
 
-  const CookingIngredientsList({super.key, required this.ingredients});
+  const CookingIngredientsList({
+    super.key,
+    required this.ingredients,
+    this.language = 'English',
+  });
 
   @override
   State<CookingIngredientsList> createState() => _CookingIngredientsListState();
@@ -42,17 +48,17 @@ class _CookingIngredientsListState extends State<CookingIngredientsList> {
 
           Color badgeBg = AppColors.secondaryGreen.withValues(alpha: 0.15);
           Color badgeText = AppColors.secondaryGreen;
-          String badgeLabel = 'Available';
+          String badgeLabel = AppLanguageService.tr('available', widget.language);
 
           if (ing.type == 'assumed') {
             badgeBg = (isDark ? AppColors.darkAiPurple : AppColors.aiPurple)
                 .withValues(alpha: 0.15);
             badgeText = isDark ? AppColors.darkAiPurple : AppColors.aiPurple;
-            badgeLabel = 'Staple';
+            badgeLabel = AppLanguageService.tr('staple', widget.language);
           } else if (ing.type == 'missing') {
             badgeBg = AppColors.warningOrange.withValues(alpha: 0.15);
             badgeText = AppColors.warningOrange;
-            badgeLabel = 'Missing';
+            badgeLabel = AppLanguageService.tr('missing', widget.language);
           }
 
           final qtyStr = ing.quantity.isNotEmpty ? ' (${ing.quantity})' : '';

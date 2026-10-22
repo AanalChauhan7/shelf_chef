@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 import 'recipe_detail_dialog.dart';
 
@@ -8,6 +9,7 @@ class AiGeneratedCard extends StatelessWidget {
   final GeneratedRecipe recipe;
   final int peopleCount;
   final bool isDark;
+  final String language;
   final ValueChanged<GeneratedRecipe>? onSavedChanged;
 
   /// Overrides the default tap action (opening the recipe detail dialog).
@@ -18,6 +20,7 @@ class AiGeneratedCard extends StatelessWidget {
     required this.recipe,
     required this.peopleCount,
     required this.isDark,
+    this.language = 'English',
     this.onSavedChanged,
     this.onTap,
   });
@@ -38,6 +41,7 @@ class AiGeneratedCard extends StatelessWidget {
                 context,
                 recipe: recipe,
                 peopleCount: peopleCount,
+                language: language,
                 onSavedChanged: onSavedChanged,
               ),
       borderRadius: BorderRadius.circular(20),
@@ -75,7 +79,7 @@ class AiGeneratedCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    recipe.category,
+                    AppLanguageService.translateCategory(recipe.category, language),
                     style: TextStyle(
                       color: isDark
                           ? AppColors.darkAiPurple
@@ -87,24 +91,24 @@ class AiGeneratedCard extends StatelessWidget {
                 ),
                 if (recipe.matchPercent.isNotEmpty) const SizedBox(width: 6),
                 if (recipe.matchPercent.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondaryGreen.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${recipe.matchPercent} Match',
-                    style: const TextStyle(
-                      color: AppColors.secondaryGreen,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${recipe.matchPercent} ${AppLanguageService.tr('match', language)}',
+                      style: const TextStyle(
+                        color: AppColors.secondaryGreen,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -134,7 +138,7 @@ class AiGeneratedCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  'Tap to Cook →',
+                  AppLanguageService.tr('tap_to_cook', language),
                   style: TextStyle(
                     color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
                     fontSize: 12,

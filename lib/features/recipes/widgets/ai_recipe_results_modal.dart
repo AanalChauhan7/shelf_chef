@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 import '../models/ingredient_item.dart';
 import 'ai_generated_card.dart';
@@ -11,6 +12,7 @@ class AiRecipeResultsModal extends StatelessWidget {
   final List<GeneratedRecipe> recipes;
   final bool isDark;
   final String title;
+  final String language;
 
   const AiRecipeResultsModal({
     super.key,
@@ -19,6 +21,7 @@ class AiRecipeResultsModal extends StatelessWidget {
     required this.recipes,
     required this.isDark,
     this.title = 'Chef Recipes',
+    this.language = 'English',
   });
 
   static void show(
@@ -26,9 +29,12 @@ class AiRecipeResultsModal extends StatelessWidget {
     required int peopleCount,
     required List<IngredientItem> ingredients,
     required List<GeneratedRecipe> recipes,
-    String title = 'Chef Recipes',
+    String? title,
+    String language = 'English',
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveTitle = title ?? AppLanguageService.tr('chef_recipes', language);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -38,7 +44,8 @@ class AiRecipeResultsModal extends StatelessWidget {
         ingredients: ingredients,
         recipes: recipes,
         isDark: isDark,
-        title: title,
+        title: effectiveTitle,
+        language: language,
       ),
     );
   }
@@ -53,7 +60,15 @@ class AiRecipeResultsModal extends StatelessWidget {
         ? AppColors.darkTextSecondary
         : AppColors.textSecondary;
 
-    final ingredientNames = ingredients.map((i) => i.name).join(', ');
+    final ingredientNames = ingredients
+        .map((i) => AppLanguageService.translateIngredientName(i.name, language))
+        .join(', ');
+
+    final personStr = peopleCount == 1
+        ? AppLanguageService.tr('person', language)
+        : AppLanguageService.tr('people', language);
+    final scaledStr =
+        '${AppLanguageService.tr('scaled_for', language)} $peopleCount $personStr • ${ingredients.length} ${AppLanguageService.tr('items_used', language)}';
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -106,7 +121,7 @@ class AiRecipeResultsModal extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Scaled for $peopleCount ${peopleCount == 1 ? 'person' : 'people'} • ${ingredients.length} items used',
+                      scaledStr,
                       style: TextStyle(color: secondaryTextColor, fontSize: 12),
                     ),
                   ],
@@ -137,8 +152,8 @@ class AiRecipeResultsModal extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ingredients.isEmpty
-                        ? 'Using general pantry items'
-                        : 'Using: $ingredientNames',
+                        ? AppLanguageService.tr('using_general_pantry', language)
+                        : '${AppLanguageService.tr('using_prefix', language)}$ingredientNames',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -160,6 +175,7 @@ class AiRecipeResultsModal extends StatelessWidget {
                 return AiGeneratedCard(
                   recipe: recipes[index],
                   peopleCount: peopleCount,
+                  language: language,
                   isDark: isDark,
                 );
               },

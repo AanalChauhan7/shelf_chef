@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/ingredient_item.dart';
 
 /// Form inputs for entering ingredient name, quantity, and unit.
 class IngredientAddForm extends StatefulWidget {
   final ValueChanged<IngredientItem> onAdd;
+  final String language;
 
-  const IngredientAddForm({super.key, required this.onAdd});
+  const IngredientAddForm({
+    super.key,
+    required this.onAdd,
+    this.language = 'English',
+  });
 
   @override
   State<IngredientAddForm> createState() => _IngredientAddFormState();
@@ -63,7 +69,7 @@ class _IngredientAddFormState extends State<IngredientAddForm> {
             controller: _nameController,
             style: TextStyle(color: primaryTextColor, fontSize: 13),
             decoration: InputDecoration(
-              hintText: 'Ingredient (e.g. Tomato)',
+              hintText: AppLanguageService.tr('ingredient_hint', widget.language),
               hintStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 10,
@@ -92,7 +98,7 @@ class _IngredientAddFormState extends State<IngredientAddForm> {
             keyboardType: TextInputType.number,
             style: TextStyle(color: primaryTextColor, fontSize: 13),
             decoration: InputDecoration(
-              hintText: 'Qty',
+              hintText: AppLanguageService.tr('qty_hint', widget.language),
               hintStyle: TextStyle(color: secondaryTextColor, fontSize: 12),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 8,

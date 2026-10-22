@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/recipes/models/generated_recipe.dart';
+import 'app_language_service.dart';
 import 'recipe_api_service.dart';
 
 /// App-wide holder for the pantry-based recipe suggestions (`GET /recipes`)
@@ -23,22 +24,24 @@ class RecipeStore extends ChangeNotifier {
   List<GeneratedRecipe> _saved = const [];
   bool _suggestedLoaded = false;
   bool _suggestedLoading = false;
-  bool _savedLoaded = false;
-  bool _savedLoading = false;
   bool _offline = false; // suggestions are on-device, not from the API
   String? _suggestedError;
   String? _savedError;
   int _fetchCount = 0; // rotates the picks on every reload
   int _featuredIndex = 0; // which suggestion the home card shows
 
+  bool _savedLoaded = false;
+  bool _savedLoading = false;
+
   List<GeneratedRecipe> get suggested => _suggested;
   List<GeneratedRecipe> get saved => _saved;
   bool get suggestedLoaded => _suggestedLoaded;
   bool get suggestedLoading => _suggestedLoading;
-  bool get savedLoaded => _savedLoaded;
-  bool get savedLoading => _savedLoading;
   bool get suggestedOffline => _offline;
   String? get suggestedError => _suggestedError;
+
+  bool get savedLoaded => _savedLoaded;
+  bool get savedLoading => _savedLoading;
   String? get savedError => _savedError;
 
   /// The one recipe shown on the home card: one of the (up to three) current
@@ -46,12 +49,16 @@ class RecipeStore extends ChangeNotifier {
   GeneratedRecipe? get featured =>
       _suggested.isEmpty ? null : _suggested[_featuredIndex % _suggested.length];
 
+  GeneratedRecipe? get featuredRecipe => featured;
+
   /// Shows a different suggestion on the home card (no network call).
   void shuffleFeatured() {
     if (_suggested.length < 2) return;
     _pickFeatured();
     notifyListeners();
   }
+
+  void rotateFeatured() => shuffleFeatured();
 
   /// Random index, never the one already showing (when there is a choice).
   void _pickFeatured() {
@@ -76,7 +83,9 @@ class RecipeStore extends ChangeNotifier {
     final cached = await _readCache();
     if (_suggestedLoaded || _suggestedLoading) return;
     if (cached.isNotEmpty) {
-      _suggested = cached;
+      _suggested = cached
+          .map((r) => AppLanguageService.translateRecipe(r, language))
+          .toList();
       _fetchCount = 1; // the cache came from a first fetch
       _suggestedLoaded = true;
       _offline = false;
@@ -117,13 +126,17 @@ class RecipeStore extends ChangeNotifier {
       }
       // One Gujarati, one Indian and one Global recipe.
       final top = RecipeApiService.topThreeByCategory(recipes, offset: offset);
-      _suggested = top;
+      final localizedTop = top
+          .map((r) => AppLanguageService.translateRecipe(r, language))
+          .toList();
+
+      _suggested = localizedTop;
       _suggestedLoaded = true;
       _offline = false;
       _applySaved();
       _pickFeatured();
       fresh = true;
-      unawaited(_writeCache(top));
+      unawaited(_writeCache(localizedTop));
     } on RecipeApiException catch (e) {
       if (_suggestedLoaded && !_offline) {
         _suggestedError = e.message; // keep the previous API recipes
@@ -150,7 +163,9 @@ class RecipeStore extends ChangeNotifier {
       _suggestedError = error;
       return;
     }
-    _suggested = offline;
+    _suggested = offline
+        .map((r) => AppLanguageService.translateRecipe(r, language))
+        .toList();
     _suggestedLoaded = true;
     _offline = true;
     _applySaved();

@@ -91,6 +91,7 @@ class RecipesTabScreenState extends State<RecipesTabScreen> {
       context,
       recipe: full,
       peopleCount: widget.peopleCount,
+      language: widget.language,
       onSavedChanged: _store.onSavedChanged,
     );
   }
@@ -161,6 +162,7 @@ class RecipesTabScreenState extends State<RecipesTabScreen> {
         itemBuilder: (_, index) => AiGeneratedCard(
           recipe: items[index],
           peopleCount: widget.peopleCount,
+          language: widget.language,
           isDark: isDark,
           onTap: () => _openRecipe(items[index]),
         ),

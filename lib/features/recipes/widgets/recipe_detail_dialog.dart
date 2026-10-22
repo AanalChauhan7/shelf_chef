@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 import '../screens/cooking_guide_screen.dart';
 import 'save_recipe_button.dart';
@@ -8,6 +9,7 @@ import 'save_recipe_button.dart';
 class RecipeDetailDialog extends StatelessWidget {
   final GeneratedRecipe recipe;
   final int peopleCount;
+  final String language;
 
   /// Called after the recipe is saved or removed via the Save button.
   final ValueChanged<GeneratedRecipe>? onSavedChanged;
@@ -16,6 +18,7 @@ class RecipeDetailDialog extends StatelessWidget {
     super.key,
     required this.recipe,
     required this.peopleCount,
+    this.language = 'English',
     this.onSavedChanged,
   });
 
@@ -23,6 +26,7 @@ class RecipeDetailDialog extends StatelessWidget {
     BuildContext context, {
     required GeneratedRecipe recipe,
     required int peopleCount,
+    String language = 'English',
     ValueChanged<GeneratedRecipe>? onSavedChanged,
   }) {
     showDialog(
@@ -30,6 +34,7 @@ class RecipeDetailDialog extends StatelessWidget {
       builder: (_) => RecipeDetailDialog(
         recipe: recipe,
         peopleCount: peopleCount,
+        language: language,
         onSavedChanged: onSavedChanged,
       ),
     );
@@ -47,6 +52,9 @@ class RecipeDetailDialog extends StatelessWidget {
         : AppColors.textSecondary;
 
     final maxHeight = MediaQuery.of(context).size.height * 0.8;
+    final personUnit = peopleCount == 1
+        ? AppLanguageService.tr('person', language)
+        : AppLanguageService.tr('people', language);
 
     return AlertDialog(
       backgroundColor: dialogBg,
@@ -122,7 +130,7 @@ class RecipeDetailDialog extends StatelessWidget {
                           ),
                           _infoChip(
                             Icons.group_rounded,
-                            '$peopleCount Portions',
+                            '$peopleCount $personUnit',
                             isDark,
                           ),
                         ],
@@ -138,9 +146,16 @@ class RecipeDetailDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Close', style: TextStyle(color: secondaryTextColor)),
+          child: Text(
+            AppLanguageService.tr('close', language),
+            style: TextStyle(color: secondaryTextColor),
+          ),
         ),
-        SaveRecipeButton(recipe: recipe, onChanged: onSavedChanged),
+        SaveRecipeButton(
+          recipe: recipe,
+          language: language,
+          onChanged: onSavedChanged,
+        ),
         ElevatedButton.icon(
           onPressed: () {
             Navigator.pop(context);
@@ -150,11 +165,12 @@ class RecipeDetailDialog extends StatelessWidget {
                 builder: (_) => CookingGuideScreen(
                   recipe: recipe,
                   peopleCount: peopleCount,
+                  language: language,
                 ),
               ),
             );
           },
-          icon: const Text('Start Cooking'),
+          icon: Text(AppLanguageService.tr('start_cooking', language)),
           label: const Icon(Icons.play_arrow_rounded, size: 18),
           style: ElevatedButton.styleFrom(
             backgroundColor: isDark
