@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../../core/services/app_language_service.dart';
+import '../../../core/services/recipe_step_generator.dart';
 import '../models/generated_recipe.dart';
 import '../widgets/cooking_ingredients_list.dart';
 import '../widgets/cooking_steps_list.dart';
@@ -30,10 +31,21 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
   @override
   void initState() {
     super.initState();
-    _localizedRecipe = AppLanguageService.translateRecipe(
+    var r = AppLanguageService.translateRecipe(
       widget.recipe,
       widget.language,
     );
+    if (r.steps.isEmpty) {
+      r = r.withSteps(
+        RecipeStepGenerator.generate(
+          name: r.name,
+          category: r.category,
+          ingredients: r.allIngredientDetails,
+          lang: widget.language,
+        ),
+      );
+    }
+    _localizedRecipe = r;
   }
 
   @override

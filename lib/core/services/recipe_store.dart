@@ -185,8 +185,8 @@ class RecipeStore extends ChangeNotifier {
         (recipe.id != null && recipe.id!.isNotEmpty && s.id == recipe.id));
   }
 
-  /// Toggles saved state for [recipe] with instant offline persistence,
-  /// immediate UI reflection, and asynchronous background sync to the server.
+  /// Toggles saved state for [recipe] purely in local disk storage
+  /// (no API calls) with instant persistence and immediate UI reflection.
   Future<GeneratedRecipe> toggleSaveRecipe(GeneratedRecipe recipe) async {
     await _initSavedFromDisk();
     final currentlySaved = isRecipeSaved(recipe);
@@ -208,23 +208,11 @@ class RecipeStore extends ChangeNotifier {
       _applySaved();
       await _writeSavedCache(_saved);
       notifyListeners();
-
-      if (idToDelete != null && !idToDelete.startsWith('local_')) {
-        unawaited(
-          RecipeApiService.deleteSavedRecipe(idToDelete).catchError((_) {}),
-        );
-      }
-
       return recipe.withId(null);
     } else {
-      GeneratedRecipe savedRecipe;
-      try {
-        savedRecipe = await RecipeApiService.saveRecipe(recipe);
-      } catch (_) {
-        final localId = recipe.id ??
-            'local_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}';
-        savedRecipe = recipe.withId(localId);
-      }
+      final localId = recipe.id ??
+          'local_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}';
+      final savedRecipe = recipe.withId(localId);
 
       _saved = [
         savedRecipe,
@@ -246,32 +234,20 @@ class RecipeStore extends ChangeNotifier {
     }
   }
 
-  /// Loads saved recipes: calls `GET /saved-recipes` from the API.
+  /// Loads saved recipes purely from local disk storage (no API call).
   Future<void> loadSaved({bool silent = false}) async {
-    await _initSavedFromDisk();
-
-    if (!silent && _saved.isEmpty) {
+    if (!silent && !_savedLoaded) {
       _savedLoading = true;
       _savedError = null;
       notifyListeners();
     }
 
-    try {
-      final remote = await RecipeApiService.fetchSavedRecipes();
-      _saved = remote;
-      _savedLoaded = true;
-      _applySaved();
-      await _writeSavedCache(_saved);
-    } on RecipeApiException catch (e) {
-      if (!silent && _saved.isEmpty) {
-        _savedError = e.message;
-      }
-    } catch (_) {
-      // Keep existing local saved recipes on failure
-    } finally {
-      if (!silent) _savedLoading = false;
-      notifyListeners();
-    }
+    final cached = await _readSavedCache();
+    _saved = cached;
+    _savedLoaded = true;
+    _savedLoading = false;
+    _applySaved();
+    notifyListeners();
   }
 
   /// Call after a recipe is saved or un-saved.

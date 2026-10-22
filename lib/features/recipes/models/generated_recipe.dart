@@ -1,4 +1,5 @@
 import '../../../core/services/recipe_image_service.dart';
+import '../../../core/services/recipe_step_generator.dart';
 import 'recipe_parts.dart';
 
 export 'recipe_parts.dart';
@@ -67,6 +68,10 @@ class GeneratedRecipe {
   /// Copy of this recipe carrying (or clearing) the saved-recipe [id].
   GeneratedRecipe withId(String? newId) => _copy(id: newId);
 
+  /// Copy with custom cooking steps.
+  GeneratedRecipe withSteps(List<RecipeStepDetail> newSteps) =>
+      _copy(id: id, steps: newSteps);
+
   /// Copy with a different [category] and/or [matchPercent] (id is kept).
   GeneratedRecipe copyWith({String? category, String? matchPercent}) =>
       _copy(id: id, category: category, matchPercent: matchPercent);
@@ -75,6 +80,7 @@ class GeneratedRecipe {
     required String? id,
     String? category,
     String? matchPercent,
+    List<RecipeStepDetail>? steps,
   }) => GeneratedRecipe(
     id: id,
     category: category ?? this.category,
@@ -89,31 +95,14 @@ class GeneratedRecipe {
     availableIngredients: availableIngredients,
     assumedStaples: assumedStaples,
     missingIngredients: missingIngredients,
-    steps: steps,
+    steps: steps ?? this.steps,
     chefTip: chefTip,
     matchPercent: matchPercent ?? this.matchPercent,
     imageUrl: imageUrl,
   );
 
   /// Body sent to `POST /saved-recipes`.
-  Map<String, dynamic> toApiJson() => {
-    'name': name,
-    'title': name,
-    'category': category,
-    'description': description,
-    'servings': servings,
-    'prepTimeMinutes': prepTimeMinutes,
-    'cookTimeMinutes': cookTimeMinutes,
-    'totalTimeMinutes': totalTimeMinutes,
-    'difficulty': difficulty,
-    'caloriesPerServing': caloriesPerServing,
-    'availableIngredients': availableIngredients.map((e) => e.toJson()).toList(),
-    'assumedStaples': assumedStaples.map((e) => e.toJson()).toList(),
-    'missingIngredients': missingIngredients.map((e) => e.toJson()).toList(),
-    'steps': steps.map((e) => e.toJson()).toList(),
-    'chefTip': chefTip,
-    'imageUrl': imageUrl,
-  };
+  Map<String, dynamic> toApiJson() => toJson()..remove('id')..remove('matchPercent');
 
   /// Complete JSON representation for local persistence/caching.
   Map<String, dynamic> toJson() => {
@@ -141,7 +130,7 @@ class GeneratedRecipe {
   /// recipe wrapper such as `{ "id": 3, "recipe": { ... } }`.
   factory GeneratedRecipe.fromJson(Map<String, dynamic> json) {
     var data = json;
-    for (final wrapper in ['recipe', 'recipe_data', 'data']) {
+    for (final wrapper in ['recipe', 'recipe_data', 'data', 'ai_response']) {
       if (json[wrapper] is Map) {
         data = {...json, ...Map<String, dynamic>.from(json[wrapper] as Map)};
         break;
@@ -158,46 +147,24 @@ class GeneratedRecipe {
     if (rawIngredients is List && rawIngredients.isNotEmpty) {
       for (final item in rawIngredients) {
         if (item is Map) {
+          final m = Map<String, dynamic>.from(item);
           final status = item['status']?.toString().toLowerCase() ?? '';
           if (status == 'staple') {
-            assumed.add(
-              RecipeIngredientDetail.fromJson(
-                Map<String, dynamic>.from(item),
-                type: 'assumed',
-              ),
-            );
+            assumed.add(RecipeIngredientDetail.fromJson(m, type: 'assumed'));
           } else if (status == 'missing') {
-            missing.add(
-              RecipeIngredientDetail.fromJson(
-                Map<String, dynamic>.from(item),
-                type: 'missing',
-              ),
-            );
+            missing.add(RecipeIngredientDetail.fromJson(m, type: 'missing'));
           } else {
-            available.add(
-              RecipeIngredientDetail.fromJson(
-                Map<String, dynamic>.from(item),
-                type: 'available',
-              ),
-            );
+            available.add(RecipeIngredientDetail.fromJson(m, type: 'available'));
           }
         } else {
           available.add(
-            RecipeIngredientDetail(
-              name: item.toString(),
-              quantity: '',
-              type: 'available',
-            ),
+            RecipeIngredientDetail(name: item.toString(), quantity: '', type: 'available'),
           );
         }
       }
     } else {
       available = RecipeJson.ingredients(
-        pick(data, [
-          'availableIngredients',
-          'available_ingredients',
-          'ingredientsUsed',
-        ]),
+        pick(data, ['availableIngredients', 'available_ingredients', 'ingredientsUsed']),
         'available',
       );
       assumed = RecipeJson.ingredients(
@@ -217,46 +184,14 @@ class GeneratedRecipe {
       missing = RecipeJson.ingredients(data['missing_ingredients'], 'missing');
     }
 
-    final prep = RecipeJson.toInt(
-          pick(data, ['prepTimeMinutes', 'prep_time_minutes', 'prep_time']),
-        ) ??
-        10;
-    final cook = RecipeJson.toInt(
-          pick(data, [
-            'cookTimeMinutes',
-            'cook_time_minutes',
-            'cook_time',
-            'cookTime',
-          ]),
-        ) ??
-        20;
-    final total = RecipeJson.toInt(
-          pick(data, [
-            'totalTimeMinutes',
-            'total_time_minutes',
-            'total_time',
-            'time',
-            'cook_time',
-            'cookTime',
-          ]),
-        ) ??
-        (prep + cook);
-
-    final matchRaw = pick(data, [
-      'matchPercent',
-      'match_percent',
-      'match_percentage',
-      'match',
-    ]);
+    final prep = RecipeJson.toInt(pick(data, ['prepTimeMinutes', 'prep_time_minutes', 'prep_time'])) ?? 10;
+    final cook = RecipeJson.toInt(pick(data, ['cookTimeMinutes', 'cook_time_minutes', 'cook_time', 'cookTime'])) ?? 20;
+    final total = RecipeJson.toInt(pick(data, ['totalTimeMinutes', 'total_time_minutes', 'total_time', 'time', 'cook_time', 'cookTime'])) ?? (prep + cook);
+    final matchRaw = pick(data, ['matchPercent', 'match_percent', 'match_percentage', 'match']);
     final rawId = json['id'] ?? json['recipe_id'] ?? json['_id'];
 
     final nutrition = data['nutrition'] is Map ? data['nutrition'] as Map : null;
-    final caloriesRaw = pick(data, [
-          'caloriesPerServing',
-          'calories_per_serving',
-          'calories',
-        ]) ??
-        nutrition?['calories'];
+    final caloriesRaw = pick(data, ['caloriesPerServing', 'calories_per_serving', 'calories']) ?? nutrition?['calories'];
     final calories = RecipeJson.toInt(caloriesRaw) ?? 350;
 
     final tipRaw = pick(data, ['chefTip', 'chef_tip', 'tip']);
@@ -266,18 +201,25 @@ class GeneratedRecipe {
             ? (data['tips'] as List).first.toString()
             : '');
 
+    final category = RecipeJson.text(pick(data, ['category', 'cuisine', 'type']) ?? 'Recipe');
+    final name = RecipeJson.text(pick(data, ['name', 'title', 'recipe_name']) ?? 'Chef Special');
+
+    final parsedSteps = RecipeJson.steps(
+      pick(data, ['steps', 'instructions', 'directions', 'method']),
+    );
+    final steps = parsedSteps.isNotEmpty
+        ? parsedSteps
+        : RecipeStepGenerator.generate(
+            name: name,
+            category: category,
+            ingredients: [...available, ...assumed, ...missing],
+          );
+
     return GeneratedRecipe(
       id: rawId?.toString(),
-      category: RecipeJson.text(
-        pick(data, ['category', 'cuisine', 'type']) ?? 'Recipe',
-      ),
-      name: RecipeJson.text(
-        pick(data, ['name', 'title', 'recipe_name']) ?? 'Chef Special',
-      ),
-      description: RecipeJson.text(
-        pick(data, ['description', 'summary', 'reason', 'overview']) ??
-            'Delicious recipe.',
-      ),
+      category: category,
+      name: name,
+      description: RecipeJson.text(pick(data, ['description', 'summary', 'reason', 'overview']) ?? 'Delicious recipe.'),
       servings: RecipeJson.toInt(pick(data, ['servings', 'serves'])) ?? 2,
       prepTimeMinutes: prep,
       cookTimeMinutes: cook,
@@ -287,13 +229,10 @@ class GeneratedRecipe {
       availableIngredients: available,
       assumedStaples: assumed,
       missingIngredients: missing,
-      steps: RecipeJson.steps(
-        pick(data, ['steps', 'instructions', 'directions', 'method']),
-      ),
+      steps: steps,
       chefTip: tip,
       matchPercent: RecipeJson.match(matchRaw),
-      imageUrl: pick(data, ['imageUrl', 'image_url', 'image', 'thumbnail'])
-          ?.toString(),
+      imageUrl: pick(data, ['imageUrl', 'image_url', 'image', 'thumbnail'])?.toString(),
     );
   }
 }

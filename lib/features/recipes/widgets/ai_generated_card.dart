@@ -60,6 +60,8 @@ class AiGeneratedCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     recipe.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: primaryTextColor,
                       fontSize: 16,
@@ -67,6 +69,7 @@ class AiGeneratedCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -119,16 +122,16 @@ class AiGeneratedCard extends StatelessWidget {
             const SizedBox(height: 14),
             Row(
               children: [
-                Icon(Icons.timer_rounded, size: 16, color: secondaryTextColor),
+                Icon(Icons.timer_rounded, size: 15, color: secondaryTextColor),
                 const SizedBox(width: 4),
                 Text(
                   recipe.prepTime,
                   style: TextStyle(color: secondaryTextColor, fontSize: 12),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Icon(
                   Icons.local_fire_department_rounded,
-                  size: 16,
+                  size: 15,
                   color: AppColors.warningOrange,
                 ),
                 const SizedBox(width: 4),
@@ -136,13 +139,18 @@ class AiGeneratedCard extends StatelessWidget {
                   recipe.calories,
                   style: TextStyle(color: secondaryTextColor, fontSize: 12),
                 ),
-                const Spacer(),
-                Text(
-                  AppLanguageService.tr('tap_to_cook', language),
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    AppLanguageService.tr('tap_to_cook', language),
+                    textAlign: TextAlign.end,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

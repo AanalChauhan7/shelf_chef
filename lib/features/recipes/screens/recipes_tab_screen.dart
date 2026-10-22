@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/core.dart';
+import '../../../core/services/recipe_step_generator.dart';
 import '../../../core/services/recipe_store.dart';
 import '../models/generated_recipe.dart';
 import '../widgets/ai_generated_card.dart';
@@ -74,20 +74,15 @@ class RecipesTabScreenState extends State<RecipesTabScreen> {
 
   Future<void> _openRecipe(GeneratedRecipe recipe) async {
     var full = recipe;
-    // Saved-recipe lists may only hold summaries: fetch the full recipe.
-    if (recipe.isSaved && recipe.steps.isEmpty) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
+    if (full.steps.isEmpty) {
+      full = full.withSteps(
+        RecipeStepGenerator.generate(
+          name: full.name,
+          category: full.category,
+          ingredients: full.allIngredientDetails,
+          lang: widget.language,
+        ),
       );
-      try {
-        full = await RecipeApiService.fetchSavedRecipe(recipe.id!);
-      } on RecipeApiException {
-        // Fall back to the summary we already have.
-      }
-      if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop();
     }
     if (!mounted) return;
     RecipeDetailDialog.show(

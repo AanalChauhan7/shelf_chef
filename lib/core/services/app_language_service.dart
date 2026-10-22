@@ -1,4 +1,5 @@
 import '../../features/recipes/models/generated_recipe.dart';
+import 'recipe_step_generator.dart';
 
 /// Centralized language service providing localization mappings, UI dictionary,
 /// and full recipe translation support for Gujarati, Hindi, and English.
@@ -277,17 +278,43 @@ class AppLanguageService {
   /// Translates a GeneratedRecipe object into the target language.
   /// Converts title, description, category, ingredients, cooking steps, and chef tips.
   static GeneratedRecipe translateRecipe(GeneratedRecipe recipe, String lang) {
-    if (lang == 'English') return recipe;
+    if (lang == 'English') {
+      if (recipe.steps.isNotEmpty) return recipe;
+      return recipe.withSteps(
+        RecipeStepGenerator.generate(
+          name: recipe.name,
+          category: recipe.category,
+          ingredients: recipe.allIngredientDetails,
+          lang: 'English',
+        ),
+      );
+    }
 
     final isGu = lang == 'Gujarati';
     final isHi = lang == 'Hindi';
 
-    // If already in target script, return
+    // If already in target script, ensure steps exist and return
     if (isGu && hasGujarati(recipe.name) && hasGujarati(recipe.description)) {
-      return recipe;
+      if (recipe.steps.isNotEmpty) return recipe;
+      return recipe.withSteps(
+        RecipeStepGenerator.generate(
+          name: recipe.name,
+          category: recipe.category,
+          ingredients: recipe.allIngredientDetails,
+          lang: 'Gujarati',
+        ),
+      );
     }
     if (isHi && hasHindi(recipe.name) && hasHindi(recipe.description)) {
-      return recipe;
+      if (recipe.steps.isNotEmpty) return recipe;
+      return recipe.withSteps(
+        RecipeStepGenerator.generate(
+          name: recipe.name,
+          category: recipe.category,
+          ingredients: recipe.allIngredientDetails,
+          lang: 'Hindi',
+        ),
+      );
     }
 
     final lowerName = recipe.name.toLowerCase();
@@ -409,23 +436,14 @@ class AppLanguageService {
       );
     }).toList();
 
-    // If steps are empty, provide standard fallback steps in selected language
+    // If steps are empty, provide generated steps in selected language
     if (newSteps.isEmpty) {
-      if (isGu) {
-        newSteps = const [
-          RecipeStepDetail(stepNumber: 1, instruction: 'બધી સામગ્રીને ધોઈ યોગ્ય કદમાં સમારીને તૈયાર કરો.', durationMinutes: 5),
-          RecipeStepDetail(stepNumber: 2, instruction: 'કડાઈમાં તેલ અથવા ઘી ગરમ કરી જીરું અને મસાલાનો વઘાર કરો.', durationMinutes: 3),
-          RecipeStepDetail(stepNumber: 3, instruction: 'મુખ્ય સામગ્રી ઉમેરી ધીમા તાપે ૧૦-૧૨ મિનિટ સારી રીતે ચડવા દો.', durationMinutes: 12),
-          RecipeStepDetail(stepNumber: 4, instruction: 'કોથમીર ભભરાવી ગરમાગરમ રોટલી કે ભાત સાથે પીરસો.', durationMinutes: 2),
-        ];
-      } else if (isHi) {
-        newSteps = const [
-          RecipeStepDetail(stepNumber: 1, instruction: 'सभी सामग्री को धोकर उचित आकार में काट कर तैयार कर लें।', durationMinutes: 5),
-          RecipeStepDetail(stepNumber: 2, instruction: 'कड़ाही में तेल या घी गरम करके जीरा और मसालों का तड़का लगाएं।', durationMinutes: 3),
-          RecipeStepDetail(stepNumber: 3, instruction: 'मुख्य सामग्री डालकर धीमी आंच पर 10-12 मिनट अच्छी तरह पकने दें।', durationMinutes: 12),
-          RecipeStepDetail(stepNumber: 4, instruction: 'हरा धनिया डालकर गरमा-गरम रोटी या चावल के साथ परोसें।', durationMinutes: 2),
-        ];
-      }
+      newSteps = RecipeStepGenerator.generate(
+        name: recipe.name,
+        category: recipe.category,
+        ingredients: recipe.allIngredientDetails,
+        lang: lang,
+      );
     }
 
     return GeneratedRecipe(
