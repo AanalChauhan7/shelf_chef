@@ -28,20 +28,14 @@ class PantryApiService {
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(response.body);
-        return jsonList
-            .map((item) => PantryItem.fromJson(item as Map<String, dynamic>))
-            .toList();
+        return _parsePantryJson(jsonDecode(response.body));
       } else if (kIsWeb) {
         final directRes = await http.get(
           Uri.parse(baseUrl),
           headers: {'accept': 'application/json'},
         );
         if (directRes.statusCode == 200) {
-          final List<dynamic> jsonList = jsonDecode(directRes.body);
-          return jsonList
-              .map((i) => PantryItem.fromJson(i as Map<String, dynamic>))
-              .toList();
+          return _parsePantryJson(jsonDecode(directRes.body));
         }
       }
       return [];
@@ -53,16 +47,28 @@ class PantryApiService {
             headers: {'accept': 'application/json'},
           );
           if (directRes.statusCode == 200) {
-            final List<dynamic> jsonList = jsonDecode(directRes.body);
-            return jsonList
-                .map((i) => PantryItem.fromJson(i as Map<String, dynamic>))
-                .toList();
+            return _parsePantryJson(jsonDecode(directRes.body));
           }
         } catch (_) {}
       }
       if (kDebugMode) print('Pantry GET exception: $e');
       return [];
     }
+  }
+
+  static List<PantryItem> _parsePantryJson(dynamic body) {
+    List<dynamic> jsonList = [];
+    if (body is List) {
+      jsonList = body;
+    } else if (body is Map<String, dynamic>) {
+      jsonList =
+          body['value'] ?? body['items'] ?? body['products'] ?? body['data'] ?? [];
+    }
+    return jsonList
+        .where((item) => item != null && item is Map)
+        .map((item) =>
+            PantryItem.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
   }
 
   /// Bulk post items to POST /pantry/bulk

@@ -39,29 +39,54 @@ class PantryItem {
         .inDays;
   }
 
-  bool get isExpiringSoon => daysUntilExpiry <= 3 && daysUntilExpiry >= 0;
+  bool get isExpiringSoon => daysUntilExpiry <= 15 && daysUntilExpiry >= 0;
   bool get isExpired => daysUntilExpiry < 0;
 
-  factory PantryItem.fromJson(Map<String, dynamic> json) {
-    DateTime? expDate;
-    final rawExp = json['expiry_date'] as String?;
-    if (rawExp != null && rawExp.isNotEmpty) {
-      if (rawExp.contains('/')) {
-        final p = rawExp.split('/');
-        if (p.length == 3) {
+  static DateTime? _parseDate(dynamic raw) {
+    if (raw == null) return null;
+    final trimmed = raw.toString().trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.contains('/')) {
+      final p = trimmed.split('/');
+      if (p.length == 3) {
+        final d = int.tryParse(p[0]) ?? 1;
+        final m = int.tryParse(p[1]) ?? 1;
+        var y = int.tryParse(p[2]) ?? 2026;
+        if (y < 100) y += 2000;
+        return DateTime(y, m, d);
+      }
+    } else if (trimmed.contains('-')) {
+      final p = trimmed.split('-');
+      if (p.length == 3) {
+        if (p[0].length == 4) {
+          return DateTime.tryParse(trimmed);
+        } else {
           final d = int.tryParse(p[0]) ?? 1;
           final m = int.tryParse(p[1]) ?? 1;
           var y = int.tryParse(p[2]) ?? 2026;
           if (y < 100) y += 2000;
-          expDate = DateTime(y, m, d);
+          return DateTime(y, m, d);
         }
-      } else {
-        expDate = DateTime.tryParse(rawExp);
       }
     }
+    return DateTime.tryParse(trimmed);
+  }
+
+  factory PantryItem.fromJson(Map<String, dynamic> json) {
+    final expDate = _parseDate(json['expiry_date']);
+    final purchaseDate =
+        _parseDate(json['purchase_date'] ?? json['added_date']);
 
     final qtyNum = json['quantity'];
-    final priceNum = json['price'];
+    final priceVal = json['price'];
+    double? parsedPrice;
+    if (priceVal != null) {
+      if (priceVal is num) {
+        parsedPrice = priceVal.toDouble();
+      } else {
+        parsedPrice = double.tryParse(priceVal.toString());
+      }
+    }
 
     return PantryItem(
       id: (json['id'] ?? DateTime.now().millisecondsSinceEpoch).toString(),
@@ -70,11 +95,12 @@ class PantryItem {
       quantity: qtyNum != null ? qtyNum.toString() : '1',
       unit: json['default_unit'] ?? json['unit'] ?? 'pcs',
       expiryDate: expDate,
-      estimatedPrice: priceNum != null ? (priceNum as num).toDouble() : null,
+      estimatedPrice: parsedPrice,
       storageLocation: json['store'] ?? json['storage'] ?? 'Pantry',
       brand: json['brand'] ?? '',
       subcategory: json['subcategory'] ?? '',
       size: json['size'] ?? '',
+      addedDate: purchaseDate,
     );
   }
 

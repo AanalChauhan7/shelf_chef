@@ -71,7 +71,8 @@ class AppLanguageService {
 
   /// Translate key according to user's selected language.
   static String tr(String key, String lang) {
-    final langMap = _translations[lang] ?? _translations['English']!;
-    return langMap[key] ?? _translations['English']![key] ?? key;
+    final defaultMap = _translations['English'] ?? {};
+    final langMap = _translations[lang] ?? defaultMap;
+    return langMap[key] ?? defaultMap[key] ?? key;
   }
 }

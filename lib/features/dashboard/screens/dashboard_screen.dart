@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
-import '../../cart/widgets/shopping_cart_empty_view.dart';
+import '../../cart/screens/shopping_cart_screen.dart';
 import '../../pantry/models/pantry_item.dart';
 import '../../pantry/screens/manual_item_entry_screen.dart';
 import '../../pantry/screens/receipt_scanner_screen.dart';
@@ -55,11 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchPantryItems() async {
     final items = await PantryApiService.fetchPantryItems();
-    if (mounted) {
-      setState(() {
-        _pantryItems = items;
-      });
-    }
+    if (mounted) setState(() => _pantryItems = items);
   }
 
   void _openInitialSetupDialog() {
@@ -68,33 +64,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
       MaterialPageRoute(
         builder: (_) => InitialSetupScreen(
           initialData: _userProfile,
-          onSave: (updatedProfile) {
-            setState(() {
-              _userProfile = updatedProfile;
-            });
-          },
+          onSave: (updated) => setState(() => _userProfile = updated),
         ),
       ),
     );
   }
 
+  double get _totalPantrySpent => _pantryItems.fold(
+        0.0,
+        (sum, item) => sum + (item.estimatedPrice ?? 0.0),
+      );
+
   void _handleTabTap(int index) {
-    setState(() {
-      _currentTab = index;
-    });
+    if (index == 0) _fetchPantryItems();
+    setState(() => _currentTab = index);
   }
 
   void _openAddModal() => AddQuickModal.show(
-    context,
-    familyMembers: _userProfile.familyMembers,
-    preferredLanguage: _userProfile.preferredLanguage,
-  );
+        context,
+        familyMembers: _userProfile.familyMembers,
+        preferredLanguage: _userProfile.preferredLanguage,
+      );
 
   void _openAlertsDialog() => AlertsDialog.show(context);
 
-  void _openProfileDrawer() {
-    _scaffoldKey.currentState?.openEndDrawer();
-  }
+  void _openProfileDrawer() => _scaffoldKey.currentState?.openEndDrawer();
 
   void _openReceiptScanner() async {
     final result = await Navigator.push<bool>(
@@ -103,9 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (result == true && mounted) {
       _fetchPantryItems();
-      setState(() {
-        _currentTab = 1;
-      });
+      setState(() => _currentTab = 1);
     }
   }
 
@@ -116,9 +108,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (newItem != null && mounted) {
       _fetchPantryItems();
-      setState(() {
-        _currentTab = 1;
-      });
+      setState(() => _currentTab = 1);
     }
   }
 
@@ -180,7 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(),
               AiRecipeEmptyView(onGenerateRecipes: _openGenerateRecipe),
-              ShoppingCartEmptyView(onAddCartItem: _openManualEntry),
+              const ShoppingCartScreen(),
             ],
           ),
           Positioned(
@@ -199,37 +189,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHomeDashboardView(bool isDark) {
+    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
     return SafeArea(
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 12,
-          bottom: 110,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DashboardHeader(
-              userName: _userProfile.fullName,
-              imagePath: _userProfile.imagePath,
-              avatarEmoji: _userProfile.avatarEmoji,
-              onOpenAlerts: _openAlertsDialog,
-              onOpenProfile: _openProfileDrawer,
-            ),
-            const SizedBox(height: 24),
-            BudgetCard(totalBudget: _userProfile.monthlyBudget),
-            const SizedBox(height: 24),
-            ExpiringItemsList(
-              liveItems: _pantryItems,
-              onViewAll: () => setState(() => _currentTab = 1),
-            ),
-            const SizedBox(height: 24),
-            const AiRecipeCard(),
-            const SizedBox(height: 24),
-            const SpendingChartCard(),
-          ],
+      child: RefreshIndicator(
+        onRefresh: _fetchPantryItems,
+        color: activeColor,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: const EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 12,
+            bottom: 110,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DashboardHeader(
+                userName: _userProfile.fullName,
+                imagePath: _userProfile.imagePath,
+                avatarEmoji: _userProfile.avatarEmoji,
+                onOpenAlerts: _openAlertsDialog,
+                onOpenProfile: _openProfileDrawer,
+              ),
+              const SizedBox(height: 24),
+              BudgetCard(
+                spentAmount: _totalPantrySpent,
+                totalBudget: _userProfile.monthlyBudget,
+              ),
+              const SizedBox(height: 24),
+              ExpiringItemsList(
+                liveItems: _pantryItems,
+                onViewAll: () => setState(() => _currentTab = 1),
+              ),
+              const SizedBox(height: 24),
+              const AiRecipeCard(),
+              const SizedBox(height: 24),
+              SpendingChartCard(items: _pantryItems),
+            ],
+          ),
         ),
       ),
     );

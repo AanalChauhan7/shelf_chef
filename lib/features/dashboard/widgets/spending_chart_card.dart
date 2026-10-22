@@ -1,22 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../pantry/models/pantry_item.dart';
 
-/// Weekly Spending Chart Card showing daily spending bars in Indian Rupees (₹),
-/// without the saved badge.
+/// Weekly Spending Chart Card displaying live spending analytics & food waste percent.
 class SpendingChartCard extends StatelessWidget {
-  const SpendingChartCard({super.key});
+  final List<PantryItem> items;
 
-  final List<double> weeklySpend = const [
-    450.0,
-    780.0,
-    320.0,
-    950.0,
-    500.0,
-    200.0,
-    850.0,
-  ];
-  final List<String> days = const [
+  const SpendingChartCard({super.key, this.items = const []});
+
+  static const List<String> days = [
     'Mon',
     'Tue',
     'Wed',
@@ -26,23 +19,50 @@ class SpendingChartCard extends StatelessWidget {
     'Sun',
   ];
 
+  List<double> get _weeklySpend {
+    final spends = List<double>.filled(7, 0.0);
+    for (final item in items) {
+      final price = item.estimatedPrice ?? 0.0;
+      if (price > 0) {
+        final dayIndex = (item.addedDate.weekday - 1).clamp(0, 6);
+        spends[dayIndex] += price;
+      }
+    }
+    return spends;
+  }
+
+  double get _foodWastedPercent {
+    if (items.isEmpty) return 0.0;
+    final totalSpent =
+        items.fold(0.0, (sum, i) => sum + (i.estimatedPrice ?? 0.0));
+    final wastedSpent = items
+        .where((i) => i.isExpired)
+        .fold(0.0, (sum, i) => sum + (i.estimatedPrice ?? 0.0));
+
+    if (totalSpent > 0) {
+      return (wastedSpent / totalSpent) * 100;
+    }
+    final expiredCount = items.where((i) => i.isExpired).length;
+    return (expiredCount / items.length) * 100;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
-
-    final cardBgColor = isDark
-        ? const Color(0x991E293B)
-        : const Color(0xCCFFFFFF);
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : AppColors.border;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final cardBgColor =
+        isDark ? const Color(0x991E293B) : const Color(0xCCFFFFFF);
+    final borderColor =
+        isDark ? Colors.white.withValues(alpha: 0.12) : AppColors.border;
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
+
+    final weeklySpend = _weeklySpend;
+    final totalSpent = weeklySpend.fold(0.0, (sum, s) => sum + s);
+    final avgDaily = totalSpent / 7.0;
+    final wastedPercent = _foodWastedPercent;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
@@ -65,11 +85,13 @@ class SpendingChartCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeaderSection(primaryTextColor, secondaryTextColor),
+              _buildHeaderSection(
+                  primaryTextColor, secondaryTextColor, totalSpent),
               const SizedBox(height: 24),
-              _buildBarChart(secondaryTextColor),
+              _buildBarChart(weeklySpend, secondaryTextColor, isDark),
               const SizedBox(height: 18),
-              _buildBottomStatsRow(isDark, primaryTextColor, activeColor),
+              _buildBottomStatsRow(isDark, primaryTextColor, activeColor,
+                  wastedPercent, avgDaily),
             ],
           ),
         ),
@@ -77,29 +99,35 @@ class SpendingChartCard extends StatelessWidget {
     );
   }
 
-  // --- Private Sub-Widgets Defined Below Build Function ---
-
-  Widget _buildHeaderSection(Color primaryTextColor, Color secondaryTextColor) {
+  Widget _buildHeaderSection(
+      Color primaryText, Color secText, double totalSpent) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Weekly Spending Trend',
-          style: AppTextStyles.titleMedium(
-            color: primaryTextColor,
-          ).copyWith(fontWeight: FontWeight.w700),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Weekly Spending Trend',
+                style: AppTextStyles.titleMedium(color: primaryText)
+                    .copyWith(fontWeight: FontWeight.w700)),
+            if (totalSpent > 0)
+              Text('₹${totalSpent.toStringAsFixed(0)} total',
+                  style: TextStyle(
+                      color: primaryText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+          ],
         ),
         const SizedBox(height: 2),
-        Text(
-          'Grocery Expense Analytics in INR (₹)',
-          style: AppTextStyles.bodySmall(color: secondaryTextColor),
-        ),
+        Text('Grocery Expense Analytics in INR (₹)',
+            style: AppTextStyles.bodySmall(color: secText)),
       ],
     );
   }
 
-  Widget _buildBarChart(Color secondaryTextColor) {
-    const maxSpend = 1000.0;
+  Widget _buildBarChart(
+      List<double> weeklySpend, Color secText, bool isDark) {
+    final maxSpend = weeklySpend.fold(0.0, (m, s) => s > m ? s : m);
 
     return SizedBox(
       height: 120,
@@ -108,7 +136,9 @@ class SpendingChartCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: List.generate(days.length, (index) {
           final spend = weeklySpend[index];
-          final heightFactor = (spend / maxSpend).clamp(0.15, 1.0);
+          final heightFactor =
+              maxSpend > 0 ? (spend / maxSpend).clamp(0.12, 1.0) : 0.12;
+          final hasSpend = spend > 0;
 
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -117,27 +147,33 @@ class SpendingChartCard extends StatelessWidget {
                 width: 18,
                 height: 85 * heightFactor,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF34D399), Color(0xFF10B981)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+                  gradient: hasSpend
+                      ? const LinearGradient(
+                          colors: [Color(0xFF34D399), Color(0xFF10B981)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        )
+                      : null,
+                  color: hasSpend
+                      ? null
+                      : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
                   borderRadius: BorderRadius.circular(9),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.45),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ],
+                  boxShadow: hasSpend
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.45),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 days[index],
-                style: AppTextStyles.bodySmall(
-                  color: secondaryTextColor,
-                ).copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+                style: AppTextStyles.bodySmall(color: secText)
+                    .copyWith(fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ],
           );
@@ -146,11 +182,11 @@ class SpendingChartCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomStatsRow(
-    bool isDark,
-    Color primaryTextColor,
-    Color activeColor,
-  ) {
+  Widget _buildBottomStatsRow(bool isDark, Color primaryText, Color activeColor,
+      double wastedPercent, double avgDaily) {
+    final hasWaste = wastedPercent > 0;
+    final wasteColor = hasWaste ? AppColors.dangerRed : activeColor;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -162,39 +198,33 @@ class SpendingChartCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.eco_rounded, color: activeColor, size: 16),
+              Icon(
+                hasWaste ? Icons.delete_outline_rounded : Icons.eco_rounded,
+                color: wasteColor,
+                size: 16,
+              ),
               const SizedBox(width: 6),
               Text(
-                '0% Food Wasted',
+                '${wastedPercent.toStringAsFixed(0)}% Food Wasted',
                 style: TextStyle(
-                  color: primaryTextColor,
+                  color: hasWaste ? AppColors.dangerRed : primaryText,
                   fontSize: 12,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          Text(
-            '|',
-            style: TextStyle(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-            ),
-          ),
+          Text('|',
+              style: TextStyle(
+                  color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1))),
           Row(
             children: [
-              const Icon(
-                Icons.bolt_rounded,
-                color: AppColors.warningOrange,
-                size: 16,
-              ),
+              const Icon(Icons.bolt_rounded, color: AppColors.warningOrange, size: 16),
               const SizedBox(width: 4),
               Text(
-                '₹425 Avg/Day',
+                '₹${avgDaily.toStringAsFixed(0)} Avg/Day',
                 style: TextStyle(
-                  color: primaryTextColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                    color: primaryText, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ],
           ),

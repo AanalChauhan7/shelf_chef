@@ -52,7 +52,7 @@ class ShoppingCartEmptyView extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               AppButton(
-                text: '+ Add Item Manually',
+                text: '+ Add Item',
                 onPressed: onAddCartItem,
                 variant: AppButtonVariant.primary,
               ),
