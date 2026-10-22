@@ -97,7 +97,13 @@ class RecipeIngredientDetail {
     String type = 'available',
   }) {
     final amount = RecipeJson.text(
-      RecipeJson.pick(json, ['quantity', 'amount', 'qty']),
+      RecipeJson.pick(json, [
+        'quantity',
+        'amount',
+        'qty',
+        'required_quantity',
+        'available_quantity',
+      ]),
     );
     final unit = RecipeJson.text(json['unit']);
     final qty = (unit.isNotEmpty && !amount.endsWith(unit))

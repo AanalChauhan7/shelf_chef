@@ -35,16 +35,19 @@ class RecipesTabScreenState extends State<RecipesTabScreen> {
   RecipeStore get _store => RecipeStore.instance;
 
   /// Called by the dashboard each time the Recipes tab is opened. Suggestions
-  /// are only loaded if none are loaded yet; the saved list is kept fresh.
+  /// are kept as-is if already loaded; reload only happens on the reload button.
   void reload() {
     _loadSuggestedIfNeeded();
-    if (_store.savedLoaded) _store.loadSaved(silent: true);
+    _store.loadSaved(silent: true);
   }
 
-  void _loadSuggestedIfNeeded() => _store.ensureSuggested(
-        servings: widget.peopleCount,
-        language: widget.language,
-      );
+  void _loadSuggestedIfNeeded() {
+    if (_store.suggested.isNotEmpty) return;
+    _store.ensureSuggested(
+      servings: widget.peopleCount,
+      language: widget.language,
+    );
+  }
 
   Future<void> _refreshCurrent() async {
     if (_segment == 1) return _store.loadSaved();
@@ -63,7 +66,7 @@ class RecipesTabScreenState extends State<RecipesTabScreen> {
   void _onSegmentChanged(int value) {
     setState(() => _segment = value);
     if (value == 1) {
-      _store.loadSaved(silent: _store.savedLoaded);
+      _store.loadSaved(silent: _store.saved.isNotEmpty);
     } else {
       _loadSuggestedIfNeeded();
     }
@@ -164,6 +167,7 @@ class RecipesTabScreenState extends State<RecipesTabScreen> {
           peopleCount: widget.peopleCount,
           language: widget.language,
           isDark: isDark,
+          onSavedChanged: _store.onSavedChanged,
           onTap: () => _openRecipe(items[index]),
         ),
       ),

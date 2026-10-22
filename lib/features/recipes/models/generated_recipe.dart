@@ -115,6 +115,28 @@ class GeneratedRecipe {
     'imageUrl': imageUrl,
   };
 
+  /// Complete JSON representation for local persistence/caching.
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    'name': name,
+    'title': name,
+    'category': category,
+    'description': description,
+    'servings': servings,
+    'prepTimeMinutes': prepTimeMinutes,
+    'cookTimeMinutes': cookTimeMinutes,
+    'totalTimeMinutes': totalTimeMinutes,
+    'difficulty': difficulty,
+    'caloriesPerServing': caloriesPerServing,
+    'availableIngredients': availableIngredients.map((e) => e.toJson()).toList(),
+    'assumedStaples': assumedStaples.map((e) => e.toJson()).toList(),
+    'missingIngredients': missingIngredients.map((e) => e.toJson()).toList(),
+    'steps': steps.map((e) => e.toJson()).toList(),
+    'chefTip': chefTip,
+    'matchPercent': matchPercent,
+    'imageUrl': imageUrl,
+  };
+
   /// Accepts the Gemini schema, the Smart Pantry API schema, or a saved
   /// recipe wrapper such as `{ "id": 3, "recipe": { ... } }`.
   factory GeneratedRecipe.fromJson(Map<String, dynamic> json) {
@@ -127,34 +149,96 @@ class GeneratedRecipe {
     }
 
     final pick = RecipeJson.pick;
-    final available = RecipeJson.ingredients(
-      pick(data, [
-        'availableIngredients',
-        'available_ingredients',
-        'ingredientsUsed',
-        'ingredients',
-      ]),
-      'available',
-    );
-    final assumed = RecipeJson.ingredients(
-      pick(data, ['assumedStaples', 'assumed_staples']),
-      'assumed',
-    );
-    final missing = RecipeJson.ingredients(
-      pick(data, ['missingIngredients', 'missing_ingredients']),
-      'missing',
-    );
+
+    List<RecipeIngredientDetail> available = [];
+    List<RecipeIngredientDetail> assumed = [];
+    List<RecipeIngredientDetail> missing = [];
+
+    final rawIngredients = data['ingredients'];
+    if (rawIngredients is List && rawIngredients.isNotEmpty) {
+      for (final item in rawIngredients) {
+        if (item is Map) {
+          final status = item['status']?.toString().toLowerCase() ?? '';
+          if (status == 'staple') {
+            assumed.add(
+              RecipeIngredientDetail.fromJson(
+                Map<String, dynamic>.from(item),
+                type: 'assumed',
+              ),
+            );
+          } else if (status == 'missing') {
+            missing.add(
+              RecipeIngredientDetail.fromJson(
+                Map<String, dynamic>.from(item),
+                type: 'missing',
+              ),
+            );
+          } else {
+            available.add(
+              RecipeIngredientDetail.fromJson(
+                Map<String, dynamic>.from(item),
+                type: 'available',
+              ),
+            );
+          }
+        } else {
+          available.add(
+            RecipeIngredientDetail(
+              name: item.toString(),
+              quantity: '',
+              type: 'available',
+            ),
+          );
+        }
+      }
+    } else {
+      available = RecipeJson.ingredients(
+        pick(data, [
+          'availableIngredients',
+          'available_ingredients',
+          'ingredientsUsed',
+        ]),
+        'available',
+      );
+      assumed = RecipeJson.ingredients(
+        pick(data, ['assumedStaples', 'assumed_staples']),
+        'assumed',
+      );
+      missing = RecipeJson.ingredients(
+        pick(data, ['missingIngredients', 'missing_ingredients']),
+        'missing',
+      );
+    }
+
+    if (assumed.isEmpty && data['staple_ingredients'] is List) {
+      assumed = RecipeJson.ingredients(data['staple_ingredients'], 'assumed');
+    }
+    if (missing.isEmpty && data['missing_ingredients'] is List) {
+      missing = RecipeJson.ingredients(data['missing_ingredients'], 'missing');
+    }
 
     final prep = RecipeJson.toInt(
           pick(data, ['prepTimeMinutes', 'prep_time_minutes', 'prep_time']),
         ) ??
-        15;
+        10;
     final cook = RecipeJson.toInt(
-          pick(data, ['cookTimeMinutes', 'cook_time_minutes', 'cook_time']),
+          pick(data, [
+            'cookTimeMinutes',
+            'cook_time_minutes',
+            'cook_time',
+            'cookTime',
+          ]),
         ) ??
-        15;
+        20;
     final total = RecipeJson.toInt(
-          pick(data, ['totalTimeMinutes', 'total_time_minutes', 'total_time', 'time']),
+          pick(data, [
+            'totalTimeMinutes',
+            'total_time_minutes',
+            'total_time',
+            'time',
+            'cook_time',
+            'cookTime',
+          ]),
         ) ??
         (prep + cook);
 
@@ -166,6 +250,22 @@ class GeneratedRecipe {
     ]);
     final rawId = json['id'] ?? json['recipe_id'] ?? json['_id'];
 
+    final nutrition = data['nutrition'] is Map ? data['nutrition'] as Map : null;
+    final caloriesRaw = pick(data, [
+          'caloriesPerServing',
+          'calories_per_serving',
+          'calories',
+        ]) ??
+        nutrition?['calories'];
+    final calories = RecipeJson.toInt(caloriesRaw) ?? 350;
+
+    final tipRaw = pick(data, ['chefTip', 'chef_tip', 'tip']);
+    final tip = tipRaw != null
+        ? RecipeJson.text(tipRaw)
+        : (data['tips'] is List && (data['tips'] as List).isNotEmpty
+            ? (data['tips'] as List).first.toString()
+            : '');
+
     return GeneratedRecipe(
       id: rawId?.toString(),
       category: RecipeJson.text(
@@ -175,24 +275,22 @@ class GeneratedRecipe {
         pick(data, ['name', 'title', 'recipe_name']) ?? 'Chef Special',
       ),
       description: RecipeJson.text(
-        pick(data, ['description', 'summary']) ?? 'Delicious recipe.',
+        pick(data, ['description', 'summary', 'reason', 'overview']) ??
+            'Delicious recipe.',
       ),
       servings: RecipeJson.toInt(pick(data, ['servings', 'serves'])) ?? 2,
       prepTimeMinutes: prep,
       cookTimeMinutes: cook,
       totalTimeMinutes: total,
       difficulty: RecipeJson.text(data['difficulty'] ?? 'Medium'),
-      caloriesPerServing: RecipeJson.toInt(
-            pick(data, ['caloriesPerServing', 'calories_per_serving', 'calories']),
-          ) ??
-          350,
+      caloriesPerServing: calories,
       availableIngredients: available,
       assumedStaples: assumed,
       missingIngredients: missing,
       steps: RecipeJson.steps(
         pick(data, ['steps', 'instructions', 'directions', 'method']),
       ),
-      chefTip: RecipeJson.text(pick(data, ['chefTip', 'chef_tip', 'tip'])),
+      chefTip: tip,
       matchPercent: RecipeJson.match(matchRaw),
       imageUrl: pick(data, ['imageUrl', 'image_url', 'image', 'thumbnail'])
           ?.toString(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../../core/services/app_language_service.dart';
+import '../../../core/services/recipe_store.dart';
 import '../models/generated_recipe.dart';
 import '../models/ingredient_item.dart';
 import 'ai_generated_card.dart';
@@ -177,6 +178,7 @@ class AiRecipeResultsModal extends StatelessWidget {
                   peopleCount: peopleCount,
                   language: language,
                   isDark: isDark,
+                  onSavedChanged: RecipeStore.instance.onSavedChanged,
                 );
               },
             ),

@@ -22,12 +22,6 @@ class RecipeApiException implements Exception {
 /// - `GET    /saved-recipes/{recipe_id}` one saved recipe
 /// - `DELETE /saved-recipes/{recipe_id}` remove a saved recipe
 class RecipeApiService {
-  // Query-parameter names for GET /recipes. Match these to the parameters
-  // listed under GET /recipes in the Swagger docs (/docs). Unknown query
-  // parameters are ignored by the server, so a mismatch is harmless.
-  static const String _servingsParam = 'servings';
-  static const String _languageParam = 'language';
-
   static const List<String> _listKeys = [
     'recipes',
     'saved_recipes',
@@ -41,15 +35,11 @@ class RecipeApiService {
   static Future<List<GeneratedRecipe>> fetchRecipes({
     int? servings,
     String? language,
-    Duration timeout = const Duration(seconds: 45),
+    Duration timeout = const Duration(seconds: 50),
   }) async {
     final res = await ApiClient.request(
       'GET',
       '/recipes',
-      query: {
-        if (servings != null) _servingsParam: '$servings',
-        if (language != null) _languageParam: language,
-      },
       timeout: timeout,
     );
     return _parseList(_requireOk(res, 'load recipes'));
@@ -61,16 +51,23 @@ class RecipeApiService {
     required int servings,
     required String language,
   }) async {
-    final pantry = await PantryApiService.fetchPantryItems();
-    final ingredients = pantry
-        .where((p) => !p.isExpired)
-        .map((p) => IngredientItem(
-              id: p.id,
-              name: p.name,
-              quantity: p.quantity,
-              unit: p.unit,
-            ))
-        .toList();
+    List<IngredientItem> ingredients = const [];
+    try {
+      final pantry = await PantryApiService.fetchPantryItems()
+          .timeout(const Duration(seconds: 4));
+      ingredients = pantry
+          .where((p) => !p.isExpired)
+          .map((p) => IngredientItem(
+                id: p.id,
+                name: p.name,
+                quantity: p.quantity,
+                unit: p.unit,
+              ))
+          .toList();
+    } catch (_) {
+      // Best-effort: if pantry API fails or times out, fallback recipes are still generated.
+      ingredients = const [];
+    }
     return RecipeFallbackEngine.getFallbackRecipes(
       ingredients,
       servings,
@@ -97,22 +94,29 @@ class RecipeApiService {
     throw const RecipeApiException('Unexpected response for this recipe.');
   }
 
-  /// Saves [recipe] and returns it carrying its new server id.
-  ///
-  /// If the server answers 422 (validation error) the body is adjusted to the
-  /// fields it complains about and sent again, up to a few times.
+  /// Saves [recipe] using `POST /saved-recipes` with `{ "recipe": "<name>" }`.
   static Future<GeneratedRecipe> saveRecipe(GeneratedRecipe recipe) async {
-    final payload = SavedRecipePayload(recipe);
-    ApiResponse? res;
-    for (var attempt = 0; attempt < 5; attempt++) {
-      res = await ApiClient.request(
-        'POST',
-        '/saved-recipes',
-        body: payload.fields,
-      );
-      if (res == null || res.statusCode != 422) break;
-      if (!payload.adaptTo(res.data)) break;
+    ApiResponse? res = await ApiClient.request(
+      'POST',
+      '/saved-recipes',
+      body: {'recipe': recipe.name},
+      timeout: const Duration(seconds: 45),
+    );
+
+    if (res != null && res.statusCode == 422) {
+      final payload = SavedRecipePayload(recipe);
+      for (var attempt = 0; attempt < 3; attempt++) {
+        if (!payload.adaptTo(res?.data)) break;
+        res = await ApiClient.request(
+          'POST',
+          '/saved-recipes',
+          body: payload.fields,
+          timeout: const Duration(seconds: 45),
+        );
+        if (res == null || res.statusCode != 422) break;
+      }
     }
+
     final body = _requireOk(res, 'save the recipe');
 
     String? id;
@@ -123,9 +127,15 @@ class RecipeApiService {
     if (id != null) return recipe.withId(id);
 
     // The server didn't echo an id: look the recipe up in the saved list.
-    final saved = await fetchSavedRecipes();
-    final match = saved.where((r) => r.name == recipe.name && r.id != null);
-    return recipe.withId(match.isEmpty ? null : match.last.id);
+    try {
+      final saved = await fetchSavedRecipes();
+      final match = saved.where(
+        (r) => r.name.toLowerCase() == recipe.name.toLowerCase() && r.id != null,
+      );
+      if (match.isNotEmpty) return recipe.withId(match.last.id);
+    } catch (_) {}
+
+    return recipe;
   }
 
   /// Removes a saved recipe.
@@ -146,18 +156,64 @@ class RecipeApiService {
   static List<GeneratedRecipe> topThreeByCategory(
     List<GeneratedRecipe> all, {
     int offset = 0,
+    String language = 'English',
+    int servings = 2,
   }) {
     const groups = [
-      ['gujarati'],
-      ['indian'],
-      ['global', 'international', 'world', 'continental'],
+      [
+        'gujarati',
+        'ગુજરાતી',
+        'गुजराती',
+        'dhokla',
+        'khichdi',
+        'thepla',
+        'handvo',
+        'undhiyu',
+        'sev tameta',
+        'rotli',
+        'kadhi',
+      ],
+      [
+        'indian',
+        'ભારતીય',
+        'भारतीय',
+        'paneer',
+        'dal',
+        'curry',
+        'biryani',
+        'chole',
+        'rajma',
+        'masala',
+        'roti',
+        'paratha',
+      ],
+      [
+        'global',
+        'international',
+        'world',
+        'continental',
+        'ગ્લોબલ',
+        'ઇન્ટરનેશનલ',
+        'ग्लोबल',
+        'इंटरनेशनल',
+        'pasta',
+        'pizza',
+        'noodles',
+        'salad',
+        'tacos',
+        'soup',
+        'stir-fry',
+        'burger',
+        'sandwich',
+      ],
     ];
     final picked = <GeneratedRecipe>[];
     for (final words in groups) {
       final candidates = all
           .where((r) =>
               !picked.contains(r) &&
-              words.any(r.category.toLowerCase().contains))
+              (words.any(r.category.toLowerCase().contains) ||
+               words.any(r.name.toLowerCase().contains)))
           .toList();
       if (candidates.isNotEmpty) {
         picked.add(candidates[offset % candidates.length]);
@@ -167,6 +223,25 @@ class RecipeApiService {
       if (picked.length >= 3) break;
       if (!picked.contains(r)) picked.add(r);
     }
+
+    // If all is empty (e.g. offline testing), provide fallbacks
+    if (all.isEmpty && picked.length < 3) {
+      final fallbacks = RecipeFallbackEngine.getFallbackRecipes([], servings, language);
+      for (final fb in fallbacks) {
+        if (picked.length >= 3) break;
+        final hasCat = picked.any((p) => p.category.toLowerCase() == fb.category.toLowerCase());
+        if (!hasCat) {
+          picked.add(fb);
+        }
+      }
+      for (final fb in fallbacks) {
+        if (picked.length >= 3) break;
+        if (!picked.contains(fb)) {
+          picked.add(fb);
+        }
+      }
+    }
+
     return picked;
   }
 

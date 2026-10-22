@@ -13,12 +13,13 @@ import 'recipe_api_service.dart';
 /// Both the home card and the Recipes tab read from here, so:
 /// - suggestions are fetched ONCE (kept in memory and on disk) and reused;
 /// - they are fetched again only when [refreshSuggested] is called, i.e. when
-///   the user taps the reload button on the Recipes tab.
+///   the user explicitly taps the reload button on the Recipes tab.
 class RecipeStore extends ChangeNotifier {
   RecipeStore._();
   static final RecipeStore instance = RecipeStore._();
 
-  static const String _cacheKey = 'recipe_suggestions_cache_v1';
+  static const String _cacheKey = 'recipe_suggestions_cache_v2';
+  static const String _savedCacheKey = 'saved_recipes_local_cache_v2';
 
   List<GeneratedRecipe> _suggested = const [];
   List<GeneratedRecipe> _saved = const [];
@@ -74,19 +75,25 @@ class RecipeStore extends ChangeNotifier {
   // --- Suggestions ---
 
   /// Loads suggestions only if we have none yet: first from the on-disk
-  /// cache, then from the API. Does nothing when recipes are already loaded.
+  /// cache, then from the API. Does nothing when recipes are already loaded
+  /// so that switching tabs never reloads or loses recipes.
   Future<void> ensureSuggested({
     required int servings,
     required String language,
   }) async {
-    if (_suggestedLoaded || _suggestedLoading) return;
+    // If recipes are already in memory, keep them intact!
+    if (_suggested.isNotEmpty) return;
+    if (_suggestedLoading) return;
+
+    await _initSavedFromDisk();
+
     final cached = await _readCache();
-    if (_suggestedLoaded || _suggestedLoading) return;
+    if (_suggested.isNotEmpty) return;
     if (cached.isNotEmpty) {
       _suggested = cached
           .map((r) => AppLanguageService.translateRecipe(r, language))
           .toList();
-      _fetchCount = 1; // the cache came from a first fetch
+      _fetchCount = 1;
       _suggestedLoaded = true;
       _offline = false;
       _applySaved();
@@ -98,10 +105,9 @@ class RecipeStore extends ChangeNotifier {
     await refreshSuggested(servings: servings, language: language);
   }
 
-  /// Always asks the API for new suggestions (the reload button).
+  /// Always asks for fresh suggestions when the user taps reload at the top.
   ///
-  /// Returns true when fresh recipes arrived from the API. If the API fails
-  /// and API recipes were already showing, they are kept.
+  /// Returns true when fresh recipes arrived from the API.
   Future<bool> refreshSuggested({
     required int servings,
     required String language,
@@ -113,19 +119,28 @@ class RecipeStore extends ChangeNotifier {
 
     var fresh = false;
     final offset = _fetchCount++;
-    final savedFuture = _fetchSavedQuietly();
+    unawaited(loadSaved(silent: true));
     try {
       final recipes = await RecipeApiService.fetchRecipes(
         servings: servings,
         language: language,
+        timeout: const Duration(seconds: 50),
       );
-      final saved = await savedFuture;
-      if (saved != null) {
-        _saved = saved;
-        _savedLoaded = true;
+
+      if (recipes.isEmpty) {
+        throw const RecipeApiException(
+          'Your pantry is empty or the chef could not find matching recipes. '
+          'Add items to your pantry and tap reload.',
+        );
       }
-      // One Gujarati, one Indian and one Global recipe.
-      final top = RecipeApiService.topThreeByCategory(recipes, offset: offset);
+
+      // Pick one Gujarati, one Indian and one Global recipe directly from the API.
+      final top = RecipeApiService.topThreeByCategory(
+        recipes,
+        offset: offset,
+        language: language,
+        servings: servings,
+      );
       final localizedTop = top
           .map((r) => AppLanguageService.translateRecipe(r, language))
           .toList();
@@ -138,11 +153,9 @@ class RecipeStore extends ChangeNotifier {
       fresh = true;
       unawaited(_writeCache(localizedTop));
     } on RecipeApiException catch (e) {
-      if (_suggestedLoaded && !_offline) {
-        _suggestedError = e.message; // keep the previous API recipes
-      } else {
-        await _useOfflineSuggestions(servings, language, e.message);
-      }
+      _suggestedError = e.message;
+    } catch (e) {
+      _suggestedError = e.toString();
     } finally {
       _suggestedLoading = false;
       notifyListeners();
@@ -150,73 +163,152 @@ class RecipeStore extends ChangeNotifier {
     return fresh;
   }
 
-  Future<void> _useOfflineSuggestions(
-    int servings,
-    String language,
-    String error,
-  ) async {
-    final offline = await RecipeApiService.fetchOfflineSuggestions(
-      servings: servings,
-      language: language,
-    );
-    if (offline.isEmpty) {
-      _suggestedError = error;
-      return;
+  // --- Saved recipes (with persistent local disk storage) ---
+
+  Future<void> _initSavedFromDisk() async {
+    if (_savedLoaded && _saved.isNotEmpty) return;
+    final cached = await _readSavedCache();
+    if (cached.isNotEmpty) {
+      _saved = cached;
+      _savedLoaded = true;
+      _applySaved();
+      notifyListeners();
     }
-    _suggested = offline
-        .map((r) => AppLanguageService.translateRecipe(r, language))
-        .toList();
-    _suggestedLoaded = true;
-    _offline = true;
-    _applySaved();
-    _pickFeatured();
   }
 
-  // --- Saved recipes ---
+  /// Checks if [recipe] is currently saved locally or on the server.
+  bool isRecipeSaved(GeneratedRecipe recipe) {
+    final targetName = recipe.name.trim().toLowerCase();
+    return _saved.any((s) =>
+        s.name.trim().toLowerCase() == targetName ||
+        (recipe.id != null && recipe.id!.isNotEmpty && s.id == recipe.id));
+  }
 
+  /// Toggles saved state for [recipe] with instant offline persistence,
+  /// immediate UI reflection, and asynchronous background sync to the server.
+  Future<GeneratedRecipe> toggleSaveRecipe(GeneratedRecipe recipe) async {
+    await _initSavedFromDisk();
+    final currentlySaved = isRecipeSaved(recipe);
+
+    if (currentlySaved) {
+      final match = _saved.firstWhere(
+        (s) =>
+            s.name.trim().toLowerCase() == recipe.name.trim().toLowerCase() ||
+            (recipe.id != null && s.id == recipe.id),
+        orElse: () => recipe,
+      );
+      final idToDelete = match.id ?? recipe.id;
+
+      _saved = _saved
+          .where((s) =>
+              s.name.trim().toLowerCase() != recipe.name.trim().toLowerCase() &&
+              (s.id == null || s.id != idToDelete))
+          .toList();
+      _applySaved();
+      await _writeSavedCache(_saved);
+      notifyListeners();
+
+      if (idToDelete != null && !idToDelete.startsWith('local_')) {
+        unawaited(
+          RecipeApiService.deleteSavedRecipe(idToDelete).catchError((_) {}),
+        );
+      }
+
+      return recipe.withId(null);
+    } else {
+      GeneratedRecipe savedRecipe;
+      try {
+        savedRecipe = await RecipeApiService.saveRecipe(recipe);
+      } catch (_) {
+        final localId = recipe.id ??
+            'local_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}';
+        savedRecipe = recipe.withId(localId);
+      }
+
+      _saved = [
+        savedRecipe,
+        ..._saved.where(
+          (s) => s.name.trim().toLowerCase() != savedRecipe.name.trim().toLowerCase(),
+        ),
+      ];
+      _applySaved();
+      await _writeSavedCache(_saved);
+      notifyListeners();
+
+      return savedRecipe;
+    }
+  }
+
+  /// Loads saved recipes: calls `GET /saved-recipes` from the API.
   Future<void> loadSaved({bool silent = false}) async {
-    if (!silent) {
+    await _initSavedFromDisk();
+
+    if (!silent && _saved.isEmpty) {
       _savedLoading = true;
       _savedError = null;
       notifyListeners();
     }
+
     try {
-      _saved = await RecipeApiService.fetchSavedRecipes();
+      final remote = await RecipeApiService.fetchSavedRecipes();
+      _saved = remote;
       _savedLoaded = true;
       _applySaved();
+      await _writeSavedCache(_saved);
     } on RecipeApiException catch (e) {
-      if (!silent) _savedError = e.message;
+      if (!silent && _saved.isEmpty) {
+        _savedError = e.message;
+      }
+    } catch (_) {
+      // Keep existing local saved recipes on failure
     } finally {
       if (!silent) _savedLoading = false;
       notifyListeners();
     }
   }
 
-  /// Call after a recipe is saved or un-saved from the detail dialog.
+  /// Call after a recipe is saved or un-saved.
   void onSavedChanged(GeneratedRecipe recipe) {
-    _saved = _saved.where((s) => s.name != recipe.name).toList();
-    if (recipe.isSaved) _saved = [recipe, ..._saved];
-    _applySaved();
-    notifyListeners();
-  }
-
-  Future<List<GeneratedRecipe>?> _fetchSavedQuietly() async {
-    try {
-      return await RecipeApiService.fetchSavedRecipes();
-    } on RecipeApiException {
-      return null;
+    if (recipe.isSaved) {
+      final exists = _saved.any(
+        (s) => s.name.trim().toLowerCase() == recipe.name.trim().toLowerCase(),
+      );
+      if (!exists) {
+        _saved = [recipe, ..._saved];
+      } else {
+        _saved = _saved
+            .map((s) => s.name.trim().toLowerCase() == recipe.name.trim().toLowerCase()
+                ? recipe
+                : s)
+            .toList();
+      }
+    } else {
+      _saved = _saved
+          .where((s) =>
+              s.name.trim().toLowerCase() != recipe.name.trim().toLowerCase() &&
+              (recipe.id == null || s.id != recipe.id))
+          .toList();
     }
+    _applySaved();
+    unawaited(_writeSavedCache(_saved));
+    notifyListeners();
   }
 
   /// Marks suggestions as saved when a saved recipe has the same name.
   void _applySaved() {
     _suggested = _suggested.map((recipe) {
-      final match = _saved.where((s) => s.name == recipe.name && s.id != null);
-      return recipe.withId(match.isEmpty ? null : match.first.id);
+      final match = _saved.where(
+        (s) => s.name.trim().toLowerCase() == recipe.name.trim().toLowerCase(),
+      );
+      if (match.isNotEmpty) {
+        return recipe.withId(match.first.id ?? 'saved');
+      } else {
+        return recipe.withId(null);
+      }
     }).toList();
   }
 
-  // --- On-disk cache (API results only; offline stand-ins are never cached) ---
+  // --- On-disk caches ---
 
   Future<List<GeneratedRecipe>> _readCache() async {
     try {
@@ -238,10 +330,34 @@ class RecipeStore extends ChangeNotifier {
     if (recipes.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final json = recipes
-          .map((r) => {...r.toApiJson(), 'matchPercent': r.matchPercent})
-          .toList();
+      final json = recipes.map((r) => r.toJson()).toList();
       await prefs.setString(_cacheKey, jsonEncode(json));
+    } catch (_) {
+      // Caching is best-effort.
+    }
+  }
+
+  Future<List<GeneratedRecipe>> _readSavedCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_savedCacheKey);
+      if (raw == null) return const [];
+      final list = jsonDecode(raw);
+      if (list is! List) return const [];
+      return list
+          .whereType<Map>()
+          .map((m) => GeneratedRecipe.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _writeSavedCache(List<GeneratedRecipe> recipes) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = recipes.map((r) => r.toJson()).toList();
+      await prefs.setString(_savedCacheKey, jsonEncode(json));
     } catch (_) {
       // Caching is best-effort.
     }

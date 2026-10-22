@@ -93,7 +93,7 @@ class SavedRecipePayload {
       case 'details':
       case 'content':
       case 'payload':
-        return r.toApiJson();
+        return r.name;
       default:
         return '';
     }
