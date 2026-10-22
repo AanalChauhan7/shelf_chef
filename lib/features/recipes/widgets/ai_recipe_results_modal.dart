@@ -10,6 +10,7 @@ class AiRecipeResultsModal extends StatelessWidget {
   final List<IngredientItem> ingredients;
   final List<GeneratedRecipe> recipes;
   final bool isDark;
+  final String title;
 
   const AiRecipeResultsModal({
     super.key,
@@ -17,6 +18,7 @@ class AiRecipeResultsModal extends StatelessWidget {
     required this.ingredients,
     required this.recipes,
     required this.isDark,
+    this.title = 'Chef Recipes',
   });
 
   static void show(
@@ -24,6 +26,7 @@ class AiRecipeResultsModal extends StatelessWidget {
     required int peopleCount,
     required List<IngredientItem> ingredients,
     required List<GeneratedRecipe> recipes,
+    String title = 'Chef Recipes',
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
@@ -35,6 +38,7 @@ class AiRecipeResultsModal extends StatelessWidget {
         ingredients: ingredients,
         recipes: recipes,
         isDark: isDark,
+        title: title,
       ),
     );
   }
@@ -94,7 +98,7 @@ class AiRecipeResultsModal extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Gemini AI Recipes',
+                      title,
                       style: TextStyle(
                         color: primaryTextColor,
                         fontSize: 18,

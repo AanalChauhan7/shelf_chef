@@ -8,12 +8,18 @@ class AiGeneratedCard extends StatelessWidget {
   final GeneratedRecipe recipe;
   final int peopleCount;
   final bool isDark;
+  final ValueChanged<GeneratedRecipe>? onSavedChanged;
+
+  /// Overrides the default tap action (opening the recipe detail dialog).
+  final VoidCallback? onTap;
 
   const AiGeneratedCard({
     super.key,
     required this.recipe,
     required this.peopleCount,
     required this.isDark,
+    this.onSavedChanged,
+    this.onTap,
   });
 
   @override
@@ -27,11 +33,13 @@ class AiGeneratedCard extends StatelessWidget {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
 
     return InkWell(
-      onTap: () => RecipeDetailDialog.show(
-        context,
-        recipe: recipe,
-        peopleCount: peopleCount,
-      ),
+      onTap: onTap ??
+          () => RecipeDetailDialog.show(
+                context,
+                recipe: recipe,
+                peopleCount: peopleCount,
+                onSavedChanged: onSavedChanged,
+              ),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -77,7 +85,8 @@ class AiGeneratedCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                if (recipe.matchPercent.isNotEmpty) const SizedBox(width: 6),
+                if (recipe.matchPercent.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,

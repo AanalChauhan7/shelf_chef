@@ -2,27 +2,36 @@ import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../models/generated_recipe.dart';
 import '../screens/cooking_guide_screen.dart';
+import 'save_recipe_button.dart';
 
 /// Modal dialog displaying preview image and details for a Gemini recipe.
 class RecipeDetailDialog extends StatelessWidget {
   final GeneratedRecipe recipe;
   final int peopleCount;
 
+  /// Called after the recipe is saved or removed via the Save button.
+  final ValueChanged<GeneratedRecipe>? onSavedChanged;
+
   const RecipeDetailDialog({
     super.key,
     required this.recipe,
     required this.peopleCount,
+    this.onSavedChanged,
   });
 
   static void show(
     BuildContext context, {
     required GeneratedRecipe recipe,
     required int peopleCount,
+    ValueChanged<GeneratedRecipe>? onSavedChanged,
   }) {
     showDialog(
       context: context,
-      builder: (_) =>
-          RecipeDetailDialog(recipe: recipe, peopleCount: peopleCount),
+      builder: (_) => RecipeDetailDialog(
+        recipe: recipe,
+        peopleCount: peopleCount,
+        onSavedChanged: onSavedChanged,
+      ),
     );
   }
 
@@ -131,6 +140,7 @@ class RecipeDetailDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: Text('Close', style: TextStyle(color: secondaryTextColor)),
         ),
+        SaveRecipeButton(recipe: recipe, onChanged: onSavedChanged),
         ElevatedButton.icon(
           onPressed: () {
             Navigator.pop(context);
