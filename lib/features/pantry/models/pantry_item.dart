@@ -40,7 +40,19 @@ class PantryItem {
   }
 
   bool get isExpiringSoon => daysUntilExpiry <= 15 && daysUntilExpiry >= 0;
+  bool get isExpiringWithin1Day => daysUntilExpiry <= 1 && daysUntilExpiry >= 0;
   bool get isExpired => daysUntilExpiry < 0;
+
+  bool get isLowStock {
+    final cleanQty = quantity.replaceAll(RegExp(r'[^0-9.]'), '');
+    final numVal = num.tryParse(cleanQty);
+    if (numVal == null) return false;
+    final u = unit.toLowerCase().trim();
+    if (u == 'g' || u == 'ml') {
+      return numVal <= 250;
+    }
+    return numVal <= 1;
+  }
 
   static DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;

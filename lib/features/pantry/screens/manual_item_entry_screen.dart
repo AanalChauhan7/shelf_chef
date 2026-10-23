@@ -32,15 +32,11 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
   bool _isSubmitting = false;
 
   final List<Map<String, dynamic>> _categories = const [
-    {'name': 'Vegetables', 'icon': Icons.eco_rounded},
-    {'name': 'Fruits', 'icon': Icons.apple_rounded},
-    {'name': 'Dairy', 'icon': Icons.local_drink_rounded},
-    {'name': 'Grains & Pulses', 'icon': Icons.grain_rounded},
-    {'name': 'Spices', 'icon': Icons.local_fire_department_rounded},
-    {'name': 'Snacks', 'icon': Icons.fastfood_rounded},
+    {'name': 'Vegetables', 'icon': Icons.eco_rounded}, {'name': 'Fruits', 'icon': Icons.apple_rounded},
+    {'name': 'Dairy', 'icon': Icons.local_drink_rounded}, {'name': 'Grains & Pulses', 'icon': Icons.grain_rounded},
+    {'name': 'Spices', 'icon': Icons.local_fire_department_rounded}, {'name': 'Snacks', 'icon': Icons.fastfood_rounded},
     {'name': 'Other', 'icon': Icons.inventory_2_rounded},
   ];
-
   final List<String> _units = const ['pcs', 'g', 'kg', 'ml', 'L', 'pack', 'packet', 'tbsp'];
 
   @override
@@ -52,37 +48,25 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _qtyController.dispose();
-    _priceController.dispose();
-    _expiryController.dispose();
-    _nameFocusNode.dispose();
-    _qtyFocusNode.dispose();
-    _priceFocusNode.dispose();
-    _expiryFocusNode.dispose();
+    for (final c in [_nameController, _qtyController, _priceController, _expiryController]) {
+      c.dispose();
+    }
+    for (final f in [_nameFocusNode, _qtyFocusNode, _priceFocusNode, _expiryFocusNode]) {
+      f.dispose();
+    }
     super.dispose();
   }
 
-  String _formatDate(DateTime dt) {
-    final d = dt.day.toString().padLeft(2, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    final y = (dt.year % 100).toString().padLeft(2, '0');
-    return '$d/$m/$y';
-  }
+  String _formatDate(DateTime dt) =>
+      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${(dt.year % 100).toString().padLeft(2, '0')}';
 
   DateTime? _parseDateString(String text) {
-    final clean = text.trim();
-    if (clean.contains('/')) {
-      final p = clean.split('/');
-      if (p.length == 3) {
-        final d = int.tryParse(p[0]) ?? 1;
-        final m = int.tryParse(p[1]) ?? 1;
-        var y = int.tryParse(p[2]) ?? 2026;
-        if (y < 100) y += 2000;
-        return DateTime(y, m, d);
-      }
+    final p = text.trim().split('/');
+    if (p.length == 3) {
+      final y = (int.tryParse(p[2]) ?? 2026);
+      return DateTime(y < 100 ? y + 2000 : y, int.tryParse(p[1]) ?? 1, int.tryParse(p[0]) ?? 1);
     }
-    return DateTime.tryParse(clean);
+    return DateTime.tryParse(text.trim());
   }
 
   Future<void> _pickExpiryDate() async {
@@ -122,6 +106,26 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
     );
 
     await PantryApiService.addSinglePantryItem(newItem);
+    await AppNotificationService.instance.notifyItemAdded(
+      itemName: newItem.name,
+      quantity: newItem.quantity,
+      unit: newItem.unit,
+    );
+    if (newItem.isExpiringWithin1Day || newItem.daysUntilExpiry <= 0) {
+      await AppNotificationService.instance.notifyExpiringSoon(
+        itemName: newItem.name,
+        daysUntilExpiry: newItem.daysUntilExpiry,
+        itemId: newItem.id,
+      );
+    }
+    if (newItem.isLowStock) {
+      await AppNotificationService.instance.notifyLowStock(
+        itemName: newItem.name,
+        quantity: newItem.quantity,
+        unit: newItem.unit,
+        itemId: newItem.id,
+      );
+    }
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -225,14 +229,7 @@ class _ManualItemEntryScreenState extends State<ManualItemEntryScreen> {
     return ElevatedButton.icon(
       onPressed: _isSubmitting ? null : _submitForm,
       icon: _isSubmitting
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
+          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
           : const Icon(Icons.check_circle_rounded, size: 20),
       label: Text(_isSubmitting ? 'Saving item...' : 'Save to Inventory'),
       style: ElevatedButton.styleFrom(

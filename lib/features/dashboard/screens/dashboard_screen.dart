@@ -67,7 +67,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchPantryItems() async {
     final items = await PantryApiService.fetchPantryItems();
-    if (mounted) setState(() => _pantryItems = items);
+    if (mounted) {
+      setState(() => _pantryItems = items);
+      AppNotificationService.instance.checkPantryAlerts(items);
+    }
   }
 
   /// Home pull-to-refresh: new pantry data and another recipe on the card.

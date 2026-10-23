@@ -70,6 +70,9 @@ class _PantryEmptyViewState extends State<PantryEmptyView> {
         _apiItems = fetched;
         _isLoading = false;
       });
+      AppNotificationService.instance.checkPantryAlerts(
+        fetched.isNotEmpty ? fetched : _fallbackItems,
+      );
     }
   }
 

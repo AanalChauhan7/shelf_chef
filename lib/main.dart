@@ -38,6 +38,7 @@ Future<void> main() async {
       debugPrint('Firebase init failed: $e');
     }
     await ThemeService.init();
+    await AppNotificationService.instance.init();
     runApp(const ShelfChefApp());
   }, (error, stack) => debugPrint('Uncaught error: $error\n$stack'));
 }

@@ -49,6 +49,15 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
     if (!mounted) return;
     setState(() => _isProcessing = false);
     if (items != null && items.isNotEmpty) {
+      for (final item in items) {
+        await AppNotificationService.instance.notifyItemAdded(
+          itemName: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+        );
+      }
+      await AppNotificationService.instance.checkPantryAlerts(items);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Added ${items.length} items from receipt to Pantry!'),
         backgroundColor: AppColors.secondaryGreen,
@@ -176,53 +185,20 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
                   const SizedBox(height: 22),
                   Row(
                     children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _pickImage(ImageSource.camera),
-                          icon: const Icon(Icons.camera_alt_rounded, size: 20),
-                          label: const Text('Camera'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                            foregroundColor: primaryTextColor,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                        ),
-                      ),
+                      Expanded(child: _buildSourceBtn('Camera', Icons.camera_alt_rounded, () => _pickImage(ImageSource.camera), isDark, primaryTextColor)),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _pickImage(ImageSource.gallery),
-                          icon: const Icon(Icons.photo_library_rounded, size: 20),
-                          label: const Text('Upload Bill'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                            foregroundColor: primaryTextColor,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                        ),
-                      ),
+                      Expanded(child: _buildSourceBtn('Upload Bill', Icons.photo_library_rounded, () => _pickImage(ImageSource.gallery), isDark, primaryTextColor)),
                     ],
                   ),
                   const SizedBox(height: 16),
                   if (_imageBytes != null)
                     Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))],
-                      ),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4))]),
                       child: ElevatedButton.icon(
                         onPressed: _isProcessing ? null : _uploadAndProcess,
                         icon: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
                         label: const Text('Scan & Add to Pantry', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: activeColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
+                        style: ElevatedButton.styleFrom(backgroundColor: activeColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                       ),
                     ),
                 ],
@@ -253,6 +229,12 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
       ),
     );
   }
+
+  Widget _buildSourceBtn(String label, IconData icon, VoidCallback onTap, bool isDark, Color textColor) =>
+      ElevatedButton.icon(
+        onPressed: onTap, icon: Icon(icon, size: 20), label: Text(label),
+        style: ElevatedButton.styleFrom(backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9), foregroundColor: textColor, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+      );
 
   Widget _featureChip(String label, bool isDark) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

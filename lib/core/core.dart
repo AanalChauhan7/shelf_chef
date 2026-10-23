@@ -20,6 +20,8 @@ export 'services/recipe_api_service.dart';
 export 'services/shopping_api_service.dart';
 export 'services/theme_service.dart';
 export 'services/tts_service.dart';
+export 'models/app_notification_item.dart';
+export 'services/app_notification_service.dart';
 
 // Custom Common Widgets Exports
 export '../widgets/glass_container.dart';
