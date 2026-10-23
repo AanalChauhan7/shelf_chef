@@ -52,7 +52,7 @@ class ShelfChefApp extends StatelessWidget {
       valueListenable: ThemeService.themeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp(
-          title: 'ShelfChef AI',
+          title: 'Shelf Chef',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
