@@ -1,57 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
 import '../../recipes/models/generated_recipe.dart';
+export 'ai_recipe_metrics.dart';
 
-/// Rounded food preview on the home AI recipe card (recipe photo, falling
-/// back to the bundled onboarding image).
-class AiRecipePreviewImage extends StatelessWidget {
-  final GeneratedRecipe? recipe;
-  final Color aiPurple;
-
-  const AiRecipePreviewImage({
-    super.key,
-    required this.recipe,
-    required this.aiPurple,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final fallback = Image.asset(
-      'assets/images/onboarding_recipe.jpg',
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => Container(
-        color: aiPurple.withValues(alpha: 0.2),
-        child: const Center(child: Text('🍝', style: TextStyle(fontSize: 32))),
-      ),
-    );
-    return Container(
-      width: 72,
-      height: 72,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: aiPurple.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: recipe == null
-            ? fallback
-            : Image.network(
-                recipe!.displayImageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => fallback,
-              ),
-      ),
-    );
-  }
-}
-
-/// "AI RECIPE • 98% MATCH" pill.
+/// "AI RECIPE • 98% MATCH" pill badge.
 class AiRecipeMatchBadge extends StatelessWidget {
   final String match;
   final Color aiPurple;
@@ -85,7 +37,7 @@ class AiRecipeMatchBadge extends StatelessWidget {
           const SizedBox(width: 5),
           Flexible(
             child: Text(
-              match.isEmpty ? 'AI RECIPE' : 'AI RECIPE • $match MATCH',
+              match.isEmpty ? 'AI CHEF PICK' : 'AI CHEF PICK • $match MATCH',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -102,26 +54,118 @@ class AiRecipeMatchBadge extends StatelessWidget {
   }
 }
 
-/// Small tinted info chip ("⏱️ 30 mins", "👨‍🍳 Easy Prep", ...).
-class AiRecipeInfoBadge extends StatelessWidget {
-  final String label;
-  final Color color;
+/// Horizontal chips preview showing which pantry ingredients are ready to use.
+class AiRecipeIngredientsRow extends StatelessWidget {
+  final GeneratedRecipe recipe;
+  final bool isDark;
+  final Color emeraldAccent;
 
-  const AiRecipeInfoBadge({super.key, required this.label, required this.color});
+  const AiRecipeIngredientsRow({
+    super.key,
+    required this.recipe,
+    required this.isDark,
+    required this.emeraldAccent,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
+    final available = recipe.availableIngredients;
+    if (available.isEmpty) return const SizedBox.shrink();
+
+    final shown = available.take(3).toList();
+    final remainingCount = available.length - shown.length;
+    final secondaryText =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
+    return Row(
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 100),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.inventory_2_outlined, size: 13, color: emeraldAccent),
+                const SizedBox(width: 5),
+                Text(
+                  'In Pantry:',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: secondaryText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                ...shown.map(
+                  (ing) => Container(
+                    margin: const EdgeInsets.only(right: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: emeraldAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: emeraldAccent.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_rounded, size: 11, color: emeraldAccent),
+                        const SizedBox(width: 3),
+                        Text(
+                          ing.name,
+                          style: TextStyle(
+                            color: emeraldAccent,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (remainingCount > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0x33334155)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '+$remainingCount more',
+                      style: TextStyle(
+                        color: secondaryText,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -142,7 +186,7 @@ class AiRecipeCookButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.secondaryGreen.withValues(alpha: 0.45),
+            color: AppColors.secondaryGreen.withValues(alpha: 0.35),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -151,24 +195,32 @@ class AiRecipeCookButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Start Cooking Mode',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+        child: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Start Cooking Mode',
+                maxLines: 1,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
-          ],
+              SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+            ],
+          ),
         ),
       ),
     );

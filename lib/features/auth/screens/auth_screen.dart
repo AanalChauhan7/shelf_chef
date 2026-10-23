@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/core.dart';
-import '../widgets/google_sign_in_button.dart';
 import '../../../widgets/segmented_auth_toggle.dart';
 import '../../dashboard/models/user_profile_data.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
@@ -131,12 +130,6 @@ class _AuthScreenState extends State<AuthScreen> {
                       _buildFormSwitcher(),
                       const SizedBox(height: AppSizes.p32),
                       _buildOrDivider(isDark),
-                      const SizedBox(height: AppSizes.p24),
-                      GoogleSignInButton(
-                        onPressed: () =>
-                            _authBloc.add(AuthGoogleSignInSubmitted()),
-                        isDark: isDark,
-                      ),
                       const SizedBox(height: AppSizes.p32),
                     ],
                   ),
