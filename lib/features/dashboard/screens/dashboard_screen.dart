@@ -195,6 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      drawerScrimColor: Colors.black.withValues(alpha: isDark ? 0.45 : 0.22),
       endDrawer: ProfileDrawer(
         userProfile: _userProfile,
         onSave: (updatedProfile) {
