@@ -6,6 +6,7 @@ import '../models/generated_recipe.dart';
 import '../widgets/cooking_ingredients_list.dart';
 import '../widgets/cooking_steps_list.dart';
 import '../widgets/cooking_tts_bar.dart';
+import '../widgets/recipe_detail_parts.dart';
 
 /// Full-screen cooking guide with step-by-step instructions and TTS Voice Assistant.
 class CookingGuideScreen extends StatefulWidget {
@@ -160,67 +161,32 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    children: [
-                      Image.network(
-                        _localizedRecipe.displayImageUrl,
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, error, stackTrace) => Container(
-                          height: 200,
-                          color: (isDark
-                                  ? AppColors.darkAiPurple
-                                  : AppColors.aiPurple)
-                              .withValues(alpha: 0.2),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.restaurant_rounded,
-                            size: 60,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${widget.peopleCount} $personUnit',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+                _buildHeaderBadges(isDark, personUnit),
+                const SizedBox(height: 14),
                 Text(
                   _localizedRecipe.title,
                   style: TextStyle(
                     color: primaryTextColor,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   _localizedRecipe.description,
-                  style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                  style: TextStyle(
+                    color: secondaryTextColor,
+                    fontSize: 13,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                RecipeDetailMetrics(
+                  recipe: _localizedRecipe,
+                  peopleCount: widget.peopleCount,
+                  language: widget.language,
+                  isDark: isDark,
                 ),
                 if (_localizedRecipe.chefTip.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -326,6 +292,121 @@ class _CookingGuideScreenState extends State<CookingGuideScreen> {
             color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
             fontSize: 16,
             fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeaderBadges(bool isDark, String personUnit) {
+    final aiPurple = isDark ? AppColors.darkAiPurple : AppColors.aiPurple;
+    final emeraldAccent =
+        isDark ? AppColors.darkAccent : AppColors.primaryGreen;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final categoryText = AppLanguageService.translateCategory(
+      _localizedRecipe.category,
+      widget.language,
+    );
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (_localizedRecipe.matchPercent.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  aiPurple.withValues(alpha: 0.2),
+                  emeraldAccent.withValues(alpha: 0.15),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: aiPurple.withValues(alpha: 0.35),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_awesome, size: 12, color: aiPurple),
+                const SizedBox(width: 4),
+                Text(
+                  '${_localizedRecipe.matchPercent} MATCH',
+                  style: TextStyle(
+                    color: aiPurple,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0x33334155) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.border,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.restaurant_rounded,
+                size: 12,
+                color: secondaryTextColor,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                categoryText,
+                style: TextStyle(
+                  color: secondaryTextColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0x33334155) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.border,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.people_outline_rounded,
+                size: 13,
+                color: secondaryTextColor,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${widget.peopleCount} $personUnit',
+                style: TextStyle(
+                  color: secondaryTextColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ),
       ],

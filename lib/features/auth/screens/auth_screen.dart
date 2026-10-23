@@ -64,6 +64,17 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  Future<void> _continueAsGuest() async {
+    await GuestStorageService.setGuestMode(true);
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const DashboardScreen(userName: 'Guest Chef'),
+      ),
+      (route) => false,
+    );
+  }
+
   void _handleSignedUpSuccess(AuthSignedUpSuccess state) {
     setState(() {
       _selectedTab = 0;
@@ -128,9 +139,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: AppSizes.p28),
                       _buildFormSwitcher(),
-                      const SizedBox(height: AppSizes.p32),
+                      const SizedBox(height: AppSizes.p24),
                       _buildOrDivider(isDark),
-                      const SizedBox(height: AppSizes.p32),
+                      const SizedBox(height: AppSizes.p24),
+                      _buildContinueAsGuestButton(),
+                      const SizedBox(height: AppSizes.p24),
                     ],
                   ),
                 ),
@@ -235,6 +248,14 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildContinueAsGuestButton() {
+    return AppButton.outline(
+      text: 'Continue as Guest',
+      icon: Icons.person_outline_rounded,
+      onPressed: _continueAsGuest,
     );
   }
 }

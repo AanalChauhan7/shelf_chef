@@ -8,6 +8,8 @@ import '../../pantry/screens/receipt_scanner_screen.dart';
 import '../../pantry/widgets/pantry_empty_view.dart';
 import '../../recipes/screens/generate_recipe_screen.dart';
 import '../../recipes/screens/recipes_tab_screen.dart';
+import '../../../core/services/recipe_step_generator.dart';
+import '../../recipes/widgets/recipe_detail_dialog.dart';
 import '../models/user_profile_data.dart';
 import '../widgets/add_quick_modal.dart';
 import '../widgets/alerts_modal.dart';
@@ -159,6 +161,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _openFeaturedRecipe() {
+    final featured = RecipeStore.instance.featured;
+    if (featured == null) {
+      _openGenerateRecipe();
+      return;
+    }
+    var full = featured;
+    if (full.steps.isEmpty) {
+      full = full.withSteps(
+        RecipeStepGenerator.generate(
+          name: full.name,
+          category: full.category,
+          ingredients: full.allIngredientDetails,
+          lang: _userProfile.preferredLanguage,
+        ),
+      );
+    }
+    RecipeDetailDialog.show(
+      context,
+      recipe: full,
+      peopleCount: _userProfile.familyMembers,
+      language: _userProfile.preferredLanguage,
+      onSavedChanged: RecipeStore.instance.onSavedChanged,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -208,7 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _currentTab = 1;
         _visitedTabs.add(1);
       }),
-                onStartCooking: _openGenerateRecipe,
+                onStartCooking: _openFeaturedRecipe,
               ),
               _lazyTab(
                 1,

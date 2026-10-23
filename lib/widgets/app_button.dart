@@ -84,6 +84,25 @@ class AppButton extends StatelessWidget {
     );
   }
 
+  /// Factory constructor for Outline button
+  factory AppButton.outline({
+    required String text,
+    required VoidCallback? onPressed,
+    IconData? icon,
+    bool isLoading = false,
+    bool isFullWidth = true,
+  }) {
+    return AppButton(
+      text: text,
+      onPressed: onPressed,
+      variant: AppButtonVariant.outline,
+      icon: icon,
+      isLoading: isLoading,
+      isFullWidth: isFullWidth,
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;

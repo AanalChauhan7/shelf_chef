@@ -32,12 +32,15 @@ class AiRecipeCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: _cardDecoration(isDark, aiPurple),
-          child: ListenableBuilder(
-            listenable: RecipeStore.instance,
-            builder: (context, _) {
+        child: GestureDetector(
+          onTap: onStartCooking,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: _cardDecoration(isDark, aiPurple),
+            child: ListenableBuilder(
+              listenable: RecipeStore.instance,
+              builder: (context, _) {
               final activeRecipe = recipe ?? RecipeStore.instance.featured;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,8 +74,9 @@ class AiRecipeCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   BoxDecoration _cardDecoration(bool isDark, Color aiPurple) {
     return BoxDecoration(
