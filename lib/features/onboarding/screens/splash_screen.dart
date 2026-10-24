@@ -132,14 +132,17 @@ class _SplashScreenState extends State<SplashScreen>
                         width: 100,
                         height: 100,
                         decoration: BoxDecoration(
-                          gradient: AppGradients.primaryGradient,
                           borderRadius: BorderRadius.circular(28),
                           boxShadow: AppShadows.primaryGlow,
                         ),
-                        child: const Icon(
-                          Icons.restaurant_menu_rounded,
-                          size: 52,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: Image.asset(
+                            'assets/images/shelf_chef_logo.png',
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     ),
@@ -148,7 +151,7 @@ class _SplashScreenState extends State<SplashScreen>
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Text(
-                      'ShelfChef AI',
+                      'Shelf Chef',
                       style: AppTextStyles.displayLarge(
                         color: isDark
                             ? AppColors.darkTextPrimary

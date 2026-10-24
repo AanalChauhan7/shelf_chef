@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 
 /// Glassmorphism card for setting number of people consuming recipes.
 class PeopleCounterCard extends StatelessWidget {
   final int count;
   final ValueChanged<int> onChanged;
   final int defaultFamilyCount;
+  final String language;
 
   const PeopleCounterCard({
     super.key,
     required this.count,
     required this.onChanged,
     required this.defaultFamilyCount,
+    this.language = 'English',
   });
 
   @override
@@ -25,6 +28,10 @@ class PeopleCounterCard extends StatelessWidget {
         ? AppColors.darkTextSecondary
         : AppColors.textSecondary;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
+
+    final defaultSuffix = defaultFamilyCount > 1
+        ? AppLanguageService.tr('default_family_suffix_plural', language)
+        : AppLanguageService.tr('default_family_suffix', language);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -59,7 +66,7 @@ class PeopleCounterCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Number of People Consuming',
+                      AppLanguageService.tr('people_count', language),
                       style: TextStyle(
                         color: primaryTextColor,
                         fontSize: 15,
@@ -68,7 +75,7 @@ class PeopleCounterCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Defaulted to your $defaultFamilyCount family member${defaultFamilyCount > 1 ? 's' : ''}',
+                      '${AppLanguageService.tr('default_family_prefix', language)} $defaultFamilyCount $defaultSuffix',
                       style: TextStyle(color: secondaryTextColor, fontSize: 12),
                     ),
                   ],
@@ -81,7 +88,7 @@ class PeopleCounterCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Portion Count',
+                AppLanguageService.tr('portion_count', language),
                 style: TextStyle(
                   color: secondaryTextColor,
                   fontSize: 13,

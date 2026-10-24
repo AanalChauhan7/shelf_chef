@@ -6,7 +6,14 @@ import '../../../core/core.dart';
 class ShoppingCartEmptyView extends StatelessWidget {
   final VoidCallback onAddCartItem;
 
-  const ShoppingCartEmptyView({super.key, required this.onAddCartItem});
+  /// Builds the list from low pantry items (`POST /shopping-list/generate`).
+  final VoidCallback? onGenerate;
+
+  const ShoppingCartEmptyView({
+    super.key,
+    required this.onAddCartItem,
+    this.onGenerate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +29,7 @@ class ShoppingCartEmptyView extends StatelessWidget {
     return SafeArea(
       child: Center(
         child: SingleChildScrollView(
+          primary: false,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
@@ -56,6 +64,20 @@ class ShoppingCartEmptyView extends StatelessWidget {
                 onPressed: onAddCartItem,
                 variant: AppButtonVariant.primary,
               ),
+              if (onGenerate != null) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: onGenerate,
+                  icon: Icon(Icons.auto_awesome_rounded, color: activeColor),
+                  label: Text(
+                    'Generate from Pantry',
+                    style: TextStyle(
+                      color: activeColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

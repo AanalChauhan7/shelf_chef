@@ -43,24 +43,25 @@ class AiRecipeHubCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: aiPurple.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${recipe.matchPercent} MATCH',
-                    style: TextStyle(
-                      color: aiPurple,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
+                if (recipe.matchPercent.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: aiPurple.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${recipe.matchPercent} MATCH',
+                      style: TextStyle(
+                        color: aiPurple,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
                 Text(
                   '⏱️ ${recipe.totalTimeMinutes} Mins • ${recipe.difficulty}',
                   style: TextStyle(

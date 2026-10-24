@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/recipe_store.dart';
+import '../../recipes/widgets/recipes_status_views.dart';
 import '../models/shopping_item.dart';
 import '../widgets/add_shopping_item_dialog.dart';
+import '../widgets/cart_dialogs.dart';
+import '../widgets/cart_progress_bar.dart';
+import '../widgets/cart_segment_toggle.dart';
 import '../widgets/shopping_cart_empty_view.dart';
+import '../widgets/shopping_item_tile.dart';
+import '../widgets/shopping_list_header.dart';
 
-/// Full Shopping List screen handling API fetch, empty state, and list display with checkboxes.
+/// Shopping List screen backed by the `/shopping-list` API: load, add, check,
+/// delete, clear, and generate the list from the pantry.
 class ShoppingCartScreen extends StatefulWidget {
   const ShoppingCartScreen({super.key});
 
   @override
-  State<ShoppingCartScreen> createState() => _ShoppingCartScreenState();
+  ShoppingCartScreenState createState() => ShoppingCartScreenState();
 }
 
-class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
+class ShoppingCartScreenState extends State<ShoppingCartScreen> {
+  final ScrollController _scrollController = ScrollController();
   List<ShoppingItem> _items = [];
+  int _segment = 0; // 0 = All, 1 = To Buy, 2 = Done
   bool _isLoading = true;
+  bool _busy = false;
+  String? _error;
+
+  int get _doneCount => _items.where((i) => i.isChecked).length;
+  int get _toBuyCount => _items.where((i) => !i.isChecked).length;
+  List<ShoppingItem> get _filteredItems => _segment == 1
+      ? _items.where((i) => !i.isChecked).toList()
+      : (_segment == 2 ? _items.where((i) => i.isChecked).toList() : _items);
 
   @override
   void initState() {
@@ -22,211 +40,206 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
     _loadShoppingList();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void reload() => _loadShoppingList(showLoading: false);
+
   Future<void> _loadShoppingList({bool showLoading = true}) async {
     if (!mounted) return;
-    if (showLoading) setState(() => _isLoading = true);
+    if (showLoading && _items.isEmpty) setState(() => _isLoading = true);
     try {
       final list = await ShoppingApiService.fetchShoppingList();
+      if (!mounted) return;
+      setState(() {
+        _items = list;
+        _error = null;
+        _isLoading = false;
+      });
+    } on ShoppingApiException catch (e) {
       if (mounted) {
         setState(() {
-          if (list.isNotEmpty || showLoading) {
-            _items = list.isNotEmpty ? list : _items;
-          }
+          _error = e.message;
           _isLoading = false;
         });
       }
     } catch (_) {
-      if (mounted && showLoading) {
+      if (mounted) {
         setState(() {
+          _error = "Couldn't read your shopping list. Please try again.";
           _isLoading = false;
         });
       }
     }
   }
 
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
   Future<void> _openAddItemDialog() async {
-    final newItem = await AddShoppingItemDialog.show(context);
-    if (newItem != null && mounted) {
-      setState(() {
-        _items.insert(0, newItem);
-        _isLoading = false;
-      });
-      _loadShoppingList(showLoading: false);
+    if (await AddShoppingItemDialog.show(context) != null && mounted) {
+      await _loadShoppingList(showLoading: false);
     }
   }
 
-  void _toggleItemChecked(int index) {
+  Future<void> _generateList() async {
+    final saved = RecipeStore.instance.saved;
+    final recipeName = await CartDialogs.pickRecipe(context, saved);
+    if (saved.isNotEmpty && recipeName == null) return;
+
+    setState(() => _busy = true);
+    final error = await ShoppingApiService.generateShoppingList(
+      recipeName: recipeName,
+    );
+    if (!mounted) return;
+    if (error == null) await _loadShoppingList(showLoading: false);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    _showMessage(error ?? 'Missing ingredients added to shopping list!');
+  }
+
+  Future<void> _confirmClearList() async {
+    if (!await CartDialogs.confirmClear(context) || !mounted) return;
+    setState(() => _busy = true);
+    final ok = await ShoppingApiService.clearShoppingList();
+    if (!mounted) return;
     setState(() {
-      final item = _items[index];
-      _items[index] = item.copyWith(isChecked: !item.isChecked);
+      _busy = false;
+      if (ok) _items = [];
     });
+    if (!ok) _showMessage("Couldn't clear the list. Please try again.");
+  }
+
+  void _replaceItem(String id, ShoppingItem item) {
+    if (!mounted) return;
+    setState(() => _items = _items.map((i) => i.id == id ? item : i).toList());
+  }
+
+  Future<void> _toggleItemChecked(ShoppingItem item) async {
+    _replaceItem(item.id, item.copyWith(isChecked: !item.isChecked));
+    final ok = await ShoppingApiService.toggleCheckItem(item.id);
+    if (ok || !mounted) return;
+    _replaceItem(item.id, item);
+    _showMessage("Couldn't update the item. Please try again.");
+  }
+
+  Future<void> _deleteItem(ShoppingItem item) async {
+    setState(() => _items = _items.where((i) => i.id != item.id).toList());
+    final ok = await ShoppingApiService.deleteShoppingItem(item.id);
+    if (ok || !mounted) return;
+    _showMessage("Couldn't remove the item. Please try again.");
+    await _loadShoppingList(showLoading: false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
-
-    if (_isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(strokeWidth: 2.5, color: activeColor),
-            const SizedBox(height: 16),
-            Text(
-              'Loading Shopping List...',
-              style: TextStyle(color: secondaryTextColor, fontSize: 13),
-            ),
-          ],
-        ),
-      );
+    if (_isLoading || (_busy && _items.isEmpty)) return _buildLoadingView();
+    if (_error != null && _items.isEmpty) {
+      return SafeArea(child: RecipesErrorView(message: _error!, onRetry: () => _loadShoppingList()));
     }
-
     if (_items.isEmpty) {
-      return ShoppingCartEmptyView(
-        onAddCartItem: _openAddItemDialog,
-      );
+      return ShoppingCartEmptyView(onAddCartItem: _openAddItemDialog, onGenerate: _generateList);
     }
+    return _buildListView();
+  }
+
+  Widget _buildLoadingView() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(strokeWidth: 2.5, color: activeColor),
+          const SizedBox(height: 16),
+          Text(
+            _busy ? 'Updating Shopping List...' : 'Loading Shopping List...',
+            style: TextStyle(
+              color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListView() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
+    final displayItems = _filteredItems;
 
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _loadShoppingList,
         color: activeColor,
         child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          padding: const EdgeInsets.only(
-              left: 20, right: 20, top: 16, bottom: 110),
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.only(bottom: 110),
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Shopping List',
-                      style:
-                          AppTextStyles.headingMedium(color: primaryTextColor),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_items.length} items to buy',
-                      style:
-                          TextStyle(color: secondaryTextColor, fontSize: 13),
-                    ),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: _openAddItemDialog,
-                  icon: const Icon(Icons.add_rounded,
-                      size: 18, color: Colors.white),
-                  label: const Text(
-                    'Add Item',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: activeColor,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ],
+            ShoppingListHeader(
+              itemCount: _items.length,
+              onAdd: _openAddItemDialog,
+              onGenerate: _generateList,
+              onClear: _confirmClearList,
             ),
-            const SizedBox(height: 18),
-            for (int i = 0; i < _items.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              _buildShoppingItemTile(context, _items[i], i, isDark,
-                  primaryTextColor, secondaryTextColor, activeColor),
+            CartSegmentToggle(
+              selected: _segment,
+              totalCount: _items.length,
+              toBuyCount: _toBuyCount,
+              doneCount: _doneCount,
+              onChanged: (val) => setState(() => _segment = val),
+            ),
+            const SizedBox(height: 12),
+            CartProgressCard(doneCount: _doneCount, totalCount: _items.length),
+            if (_busy) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: LinearProgressIndicator(color: activeColor),
+              ),
             ],
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: displayItems.isEmpty
+                  ? _buildEmptyTabState(isDark)
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      primary: false,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayItems.length,
+                      separatorBuilder: (_, index) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => ShoppingItemTile(
+                        key: ValueKey('cart_tile_${displayItems[i].id}'),
+                        item: displayItems[i],
+                        onToggleChecked: (_) => _toggleItemChecked(displayItems[i]),
+                        onDelete: () => _deleteItem(displayItems[i]),
+                      ),
+                    ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildShoppingItemTile(
-    BuildContext context,
-    ShoppingItem? item,
-    int index,
-    bool isDark,
-    Color primaryColor,
-    Color secondaryColor,
-    Color activeColor,
-  ) {
-    if (item == null) return const SizedBox.shrink();
-    final cardBg = isDark ? const Color(0xCC1E293B) : Colors.white;
-    final itemName = item.name.isEmpty ? 'Item' : item.name;
-    final itemType = item.itemType.isEmpty ? 'Grocery' : item.itemType;
-    final isChecked = item.isChecked;
-
-    return Container(
-      key: ValueKey(item.id),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color:
-              isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.border,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        leading: Checkbox(
-          value: isChecked,
-          activeColor: activeColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-          onChanged: (_) => _toggleItemChecked(index),
-        ),
-        title: Text(
-          itemName,
+  Widget _buildEmptyTabState(bool isDark) {
+    final text = _segment == 1 ? 'All caught up! Nothing left to buy.' : 'No purchased items yet.';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Text(
+          text,
           style: TextStyle(
-            color: isChecked ? secondaryColor : primaryColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            decoration: isChecked ? TextDecoration.lineThrough : null,
-          ),
-        ),
-        subtitle: Text(
-          item.displayQtyUnit,
-          style: TextStyle(
-            color: secondaryColor,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             fontSize: 13,
             fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: activeColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            itemType,
-            style: TextStyle(
-              color: activeColor,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ),
       ),

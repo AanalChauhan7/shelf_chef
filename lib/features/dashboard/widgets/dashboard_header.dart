@@ -20,41 +20,31 @@ class DashboardHeader extends StatelessWidget {
     required this.onOpenProfile,
   });
 
-  /// Calculates dynamic greeting based on Indian Standard Time (IST UTC+5:30).
   String _getGreetingIST() {
     final now = DateTime.now().toUtc().add(
       const Duration(hours: 5, minutes: 30),
     );
     final hour = now.hour;
-
-    if (hour >= 5 && hour < 12) {
-      return 'Good Morning,';
-    } else if (hour >= 12 && hour < 17) {
-      return 'Good Afternoon,';
-    } else {
-      return 'Good Evening,';
-    }
+    if (hour >= 5 && hour < 12) return 'Good Morning,';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDark
-        ? AppColors.darkTextPrimary
-        : AppColors.textPrimary;
-    final secondaryTextColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.textSecondary;
+    final primaryTextColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondaryTextColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
-
-    final greetingText = _getGreetingIST();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _buildGreetingAndNameColumn(
-          greetingText,
+          _getGreetingIST(),
           primaryTextColor,
           secondaryTextColor,
         ),
@@ -71,8 +61,6 @@ class DashboardHeader extends StatelessWidget {
       ],
     );
   }
-
-  // --- Private Sub-Widgets Defined Below Build Function ---
 
   Widget _buildGreetingAndNameColumn(
     String greetingText,
@@ -116,9 +104,7 @@ class DashboardHeader extends StatelessWidget {
 
   Widget _buildThemeToggleButton(bool isDark, Color primaryTextColor) {
     return GestureDetector(
-      onTap: () async {
-        await ThemeService.toggleTheme(isDark);
-      },
+      onTap: () => ThemeService.toggleTheme(isDark),
       child: Container(
         width: 44,
         height: 44,
@@ -129,7 +115,6 @@ class DashboardHeader extends StatelessWidget {
             color: isDark
                 ? Colors.white.withValues(alpha: 0.12)
                 : AppColors.border,
-            width: 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -161,7 +146,6 @@ class DashboardHeader extends StatelessWidget {
             color: isDark
                 ? Colors.white.withValues(alpha: 0.12)
                 : AppColors.border,
-            width: 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -171,73 +155,62 @@ class DashboardHeader extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(
-              Icons.notifications_none_rounded,
-              color: primaryTextColor,
-              size: 22,
-            ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.dangerRed,
-                  shape: BoxShape.circle,
+        child: ValueListenableBuilder<int>(
+          valueListenable: AppNotificationService.instance.unreadCount,
+          builder: (context, count, _) {
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.notifications_none_rounded,
+                  color: primaryTextColor,
+                  size: 22,
                 ),
-              ),
-            ),
-          ],
+                if (count > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppColors.dangerRed,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Center(
+                        child: Text(
+                          count > 9 ? '9+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.bold,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildProfileAvatar(Color activeColor) {
-    final hasPhoto =
-        imagePath != null &&
+    final hasPhoto = imagePath != null &&
         imagePath!.isNotEmpty &&
-        (kIsWeb ||
-            imagePath!.startsWith('blob:') ||
-            imagePath!.startsWith('http://') ||
-            imagePath!.startsWith('https://') ||
-            imagePath!.startsWith('data:') ||
-            File(imagePath!).existsSync());
-    final initialLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
+        (kIsWeb || imagePath!.startsWith('http') || imagePath!.startsWith('data:') || File(imagePath!).existsSync());
+    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'A';
+    final fallback = Center(child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)));
 
-    final fallback = Center(
-      child: Text(
-        initialLetter,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-
-    Widget photoWidget() {
-      if (kIsWeb ||
-          imagePath!.startsWith('blob:') ||
-          imagePath!.startsWith('http://') ||
-          imagePath!.startsWith('https://') ||
-          imagePath!.startsWith('data:')) {
-        return Image.network(
-          imagePath!,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback,
-        );
-      }
-      return Image.file(
-        File(imagePath!),
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => fallback,
-      );
-    }
+    Widget photoWidget() => (kIsWeb || imagePath!.startsWith('http') || imagePath!.startsWith('data:'))
+        ? Image.network(imagePath!, fit: BoxFit.cover, errorBuilder: (_, _, _) => fallback)
+        : Image.file(File(imagePath!), fit: BoxFit.cover, errorBuilder: (_, _, _) => fallback);
 
     return GestureDetector(
       onTap: onOpenProfile,
@@ -248,13 +221,7 @@ class DashboardHeader extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: AppGradients.primaryGradient,
           border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: activeColor.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: ClipOval(child: hasPhoto ? photoWidget() : fallback),
       ),

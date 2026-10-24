@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/generated_recipe.dart';
 import 'recipe_detail_dialog.dart';
 
@@ -8,12 +9,20 @@ class AiGeneratedCard extends StatelessWidget {
   final GeneratedRecipe recipe;
   final int peopleCount;
   final bool isDark;
+  final String language;
+  final ValueChanged<GeneratedRecipe>? onSavedChanged;
+
+  /// Overrides the default tap action (opening the recipe detail dialog).
+  final VoidCallback? onTap;
 
   const AiGeneratedCard({
     super.key,
     required this.recipe,
     required this.peopleCount,
     required this.isDark,
+    this.language = 'English',
+    this.onSavedChanged,
+    this.onTap,
   });
 
   @override
@@ -27,11 +36,14 @@ class AiGeneratedCard extends StatelessWidget {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.border;
 
     return InkWell(
-      onTap: () => RecipeDetailDialog.show(
-        context,
-        recipe: recipe,
-        peopleCount: peopleCount,
-      ),
+      onTap: onTap ??
+          () => RecipeDetailDialog.show(
+                context,
+                recipe: recipe,
+                peopleCount: peopleCount,
+                language: language,
+                onSavedChanged: onSavedChanged,
+              ),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(18),
@@ -48,6 +60,8 @@ class AiGeneratedCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     recipe.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: primaryTextColor,
                       fontSize: 16,
@@ -55,6 +69,7 @@ class AiGeneratedCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -67,7 +82,7 @@ class AiGeneratedCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    recipe.category,
+                    AppLanguageService.translateCategory(recipe.category, language),
                     style: TextStyle(
                       color: isDark
                           ? AppColors.darkAiPurple
@@ -77,25 +92,26 @@ class AiGeneratedCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondaryGreen.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${recipe.matchPercent} Match',
-                    style: const TextStyle(
-                      color: AppColors.secondaryGreen,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
+                if (recipe.matchPercent.isNotEmpty) const SizedBox(width: 6),
+                if (recipe.matchPercent.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryGreen.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${recipe.matchPercent} ${AppLanguageService.tr('match', language)}',
+                      style: const TextStyle(
+                        color: AppColors.secondaryGreen,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -106,16 +122,16 @@ class AiGeneratedCard extends StatelessWidget {
             const SizedBox(height: 14),
             Row(
               children: [
-                Icon(Icons.timer_rounded, size: 16, color: secondaryTextColor),
+                Icon(Icons.timer_rounded, size: 15, color: secondaryTextColor),
                 const SizedBox(width: 4),
                 Text(
                   recipe.prepTime,
                   style: TextStyle(color: secondaryTextColor, fontSize: 12),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Icon(
                   Icons.local_fire_department_rounded,
-                  size: 16,
+                  size: 15,
                   color: AppColors.warningOrange,
                 ),
                 const SizedBox(width: 4),
@@ -123,13 +139,18 @@ class AiGeneratedCard extends StatelessWidget {
                   recipe.calories,
                   style: TextStyle(color: secondaryTextColor, fontSize: 12),
                 ),
-                const Spacer(),
-                Text(
-                  'Tap to Cook →',
-                  style: TextStyle(
-                    color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    AppLanguageService.tr('tap_to_cook', language),
+                    textAlign: TextAlign.end,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isDark ? AppColors.darkAiPurple : AppColors.aiPurple,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],

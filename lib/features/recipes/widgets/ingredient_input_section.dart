@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../models/ingredient_item.dart';
 import 'ingredient_add_form.dart';
 import 'ingredient_tile.dart';
@@ -8,11 +9,13 @@ import 'ingredient_tile.dart';
 class IngredientInputSection extends StatelessWidget {
   final List<IngredientItem> ingredients;
   final ValueChanged<List<IngredientItem>> onChanged;
+  final String language;
 
   const IngredientInputSection({
     super.key,
     required this.ingredients,
     required this.onChanged,
+    this.language = 'English',
   });
 
   void _addIngredient(IngredientItem newItem) {
@@ -66,7 +69,7 @@ class IngredientInputSection extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Available Ingredients',
+                  AppLanguageService.tr('ingredients', language),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -79,14 +82,14 @@ class IngredientInputSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          IngredientAddForm(onAdd: _addIngredient),
+          IngredientAddForm(onAdd: _addIngredient, language: language),
           const SizedBox(height: 14),
           if (ingredients.isEmpty)
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
-                  'No ingredients added yet. Enter items above.',
+                  AppLanguageService.tr('no_ingredients', language),
                   style: TextStyle(color: secondaryTextColor, fontSize: 12),
                 ),
               ),

@@ -71,6 +71,43 @@ see [`docs/PROJECT_OVERVIEW.md`](docs/PROJECT_OVERVIEW.md)
    - Business logic for every screen is encapsulated into dedicated BLoC units per feature (`AuthBloc`, `ProfileBloc`, `PantryBloc`).
    - UI widgets listen to state changes using `BlocConsumer` / `BlocBuilder` and trigger actions via typed Events (`AuthLogInSubmitted`, `ProfileUpdateRequested`).
 
+## Recipe API Integration
+
+Backend: `https://smart-pantry-6t0v.onrender.com` (Swagger: `/docs`).
+
+| Endpoint | Used by |
+|---|---|
+| `GET /recipes` | Recipes tab -> Suggested |
+| `GET /saved-recipes` | Recipes tab -> Saved |
+| `GET /saved-recipes/{recipe_id}` | Opening a saved recipe (full details) |
+| `POST /saved-recipes` | Save button in the recipe dialog |
+| `DELETE /saved-recipes/{recipe_id}` | Un-save (Saved button) |
+
+Code: `core/services/api_client.dart` (shared HTTP + web CORS fallback),
+`core/services/recipe_api_service.dart` (endpoints),
+`features/recipes/screens/recipes_tab_screen.dart` (UI).
+`GeneratedRecipe.fromJson` accepts both the Gemini schema and the API schema.
+
+**Recipe caching:** `core/services/recipe_store.dart` (`RecipeStore`) is the single
+source of truth for suggested + saved recipes, shared by the home "top matches"
+card and the Recipes tab. Suggestions are fetched once (kept in memory and in
+`shared_preferences`) and are re-requested from `GET /recipes` only when the user
+taps the reload button on the Recipes tab.
+
+## Shopping List API Integration
+
+Same backend. Code: `core/services/shopping_api_service.dart` (endpoints),
+`features/cart/screens/shopping_cart_screen.dart` (UI).
+
+| Endpoint | Used by |
+|---|---|
+| `GET /shopping-list` | Cart tab list (pull to refresh / on tab open) |
+| `POST /shopping-list/add` | Add Item dialog |
+| `PATCH /shopping-list/check/{item_id}` | Item checkbox |
+| `DELETE /shopping-list/items/{item_id}` | Item delete |
+| `DELETE /shopping-list/clear` | Menu -> Clear list |
+| `POST /shopping-list/generate` | Menu / empty state -> Generate from pantry |
+
 ## Tech Stack
 
 | Layer | Technology |

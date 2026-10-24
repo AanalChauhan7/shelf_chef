@@ -21,7 +21,6 @@ class BudgetCard extends StatelessWidget {
         totalBudget > 0 ? (spentAmount / totalBudget).clamp(0.0, 1.0) : 1.0;
     final remaining = totalBudget - spentAmount;
     final overAmount = spentAmount - totalBudget;
-
     final primaryTextColor =
         isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     final secondaryTextColor =
@@ -62,13 +61,11 @@ class BudgetCard extends StatelessWidget {
               _buildHeader(primaryTextColor, secondaryTextColor, activeColor,
                   remaining, isExceeded, overAmount),
               const SizedBox(height: 20),
-              _buildSpendingText(
-                  primaryTextColor, secondaryTextColor, isExceeded),
+              _buildSpendingText(primaryTextColor, secondaryTextColor, isExceeded),
               const SizedBox(height: 14),
               _buildProgressBar(isDark, activeColor, progress, isExceeded),
               const SizedBox(height: 14),
-              _buildFooter(
-                  secondaryTextColor, activeColor, isExceeded, overAmount),
+              _buildFooter(secondaryTextColor, activeColor, isExceeded, overAmount),
             ],
           ),
         ),
@@ -86,39 +83,53 @@ class BudgetCard extends StatelessWidget {
     ];
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: badgeColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+        Expanded(
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  isExceeded
+                      ? Icons.warning_amber_rounded
+                      : Icons.account_balance_wallet_rounded,
+                  color: badgeColor,
+                  size: 20,
+                ),
               ),
-              child: Icon(
-                isExceeded
-                    ? Icons.warning_amber_rounded
-                    : Icons.account_balance_wallet_rounded,
-                color: badgeColor,
-                size: 20,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Monthly Budget',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.titleMedium(color: primaryText)
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      '${months[now.month - 1]} ${now.year}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodySmall(color: secText),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Monthly Budget',
-                    style: AppTextStyles.titleMedium(color: primaryText)
-                        .copyWith(fontWeight: FontWeight.w700)),
-                Text('${months[now.month - 1]} ${now.year}',
-                    style: AppTextStyles.bodySmall(color: secText)),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
           decoration: BoxDecoration(
             color: badgeColor.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(12),
@@ -126,10 +137,15 @@ class BudgetCard extends StatelessWidget {
           ),
           child: Text(
             isExceeded
-                ? '₹${overAmount.toStringAsFixed(0)} Over Limit'
+                ? '₹${overAmount.toStringAsFixed(0)} Over'
                 : '₹${remaining.toStringAsFixed(0)} Left',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                color: badgeColor, fontSize: 12, fontWeight: FontWeight.w700),
+              color: badgeColor,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -142,17 +158,28 @@ class BudgetCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.baseline,
       textBaseline: TextBaseline.alphabetic,
       children: [
-        Text(
-          '₹${spentAmount.toStringAsFixed(0)}',
-          style: TextStyle(
-            color: isExceeded ? AppColors.dangerRed : primaryText,
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+        Flexible(
+          child: Text(
+            '₹${spentAmount.toStringAsFixed(0)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isExceeded ? AppColors.dangerRed : primaryText,
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
-        Text(' / ₹${totalBudget.toStringAsFixed(0)} limit',
-            style: AppTextStyles.bodyMedium(color: secText)),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            '/ ₹${totalBudget.toStringAsFixed(0)} limit',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.bodyMedium(color: secText),
+          ),
+        ),
       ],
     );
   }
@@ -196,29 +223,25 @@ class BudgetCard extends StatelessWidget {
 
   Widget _buildFooter(Color secText, Color activeColor, bool isExceeded,
       double overAmount) {
-    if (isExceeded) {
-      return Row(
-        children: [
-          const Icon(Icons.warning_rounded,
-              size: 14, color: AppColors.dangerRed),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              'Budget exceeded by ₹${overAmount.toStringAsFixed(0)}!',
-              style: AppTextStyles.bodySmall(color: AppColors.dangerRed)
-                  .copyWith(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      );
-    }
     return Row(
       children: [
-        Icon(Icons.check_circle_outline_rounded, size: 14, color: activeColor),
+        Icon(
+          isExceeded ? Icons.warning_rounded : Icons.check_circle_outline_rounded,
+          size: 14,
+          color: isExceeded ? AppColors.dangerRed : activeColor,
+        ),
         const SizedBox(width: 4),
-        Text('Within monthly budget limit',
-            style: AppTextStyles.bodySmall(color: secText)),
+        Expanded(
+          child: Text(
+            isExceeded
+                ? 'Budget exceeded by ₹${overAmount.toStringAsFixed(0)}!'
+                : 'Within monthly budget limit',
+            style: AppTextStyles.bodySmall(
+              color: isExceeded ? AppColors.dangerRed : secText,
+            ).copyWith(fontWeight: isExceeded ? FontWeight.w600 : FontWeight.w400),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/core.dart';
-import '../widgets/google_sign_in_button.dart';
 import '../../../widgets/segmented_auth_toggle.dart';
 import '../../dashboard/models/user_profile_data.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
@@ -60,6 +59,17 @@ class _AuthScreenState extends State<AuthScreen> {
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => DashboardScreen(userName: profile.fullName),
+      ),
+      (route) => false,
+    );
+  }
+
+  Future<void> _continueAsGuest() async {
+    await GuestStorageService.setGuestMode(true);
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const DashboardScreen(userName: 'Guest Chef'),
       ),
       (route) => false,
     );
@@ -129,15 +139,11 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: AppSizes.p28),
                       _buildFormSwitcher(),
-                      const SizedBox(height: AppSizes.p32),
+                      const SizedBox(height: AppSizes.p24),
                       _buildOrDivider(isDark),
                       const SizedBox(height: AppSizes.p24),
-                      GoogleSignInButton(
-                        onPressed: () =>
-                            _authBloc.add(AuthGoogleSignInSubmitted()),
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: AppSizes.p32),
+                      _buildContinueAsGuestButton(),
+                      const SizedBox(height: AppSizes.p24),
                     ],
                   ),
                 ),
@@ -242,6 +248,14 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildContinueAsGuestButton() {
+    return AppButton.outline(
+      text: 'Continue as Guest',
+      icon: Icons.person_outline_rounded,
+      onPressed: _continueAsGuest,
     );
   }
 }

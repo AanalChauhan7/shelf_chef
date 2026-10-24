@@ -60,8 +60,7 @@ class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
 
     setState(() => _isSaving = true);
 
-    // Call API to persist item
-    ShoppingApiService.addShoppingItem(
+    final success = await ShoppingApiService.addShoppingItem(
       name: newItem.name,
       quantity: newItem.quantity,
       unit: newItem.unit,
@@ -71,14 +70,24 @@ class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
     if (!mounted) return;
     setState(() => _isSaving = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Item added to Shopping List!'),
-        backgroundColor: AppColors.secondaryGreen,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    Navigator.pop(context, newItem);
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Item added to Shopping List!'),
+          backgroundColor: AppColors.secondaryGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.pop(context, newItem);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to add item. Please check connection.'),
+          backgroundColor: AppColors.dangerRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override

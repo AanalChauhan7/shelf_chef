@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/recipe_store.dart';
 import '../../cart/screens/shopping_cart_screen.dart';
 import '../../pantry/models/pantry_item.dart';
 import '../../pantry/screens/manual_item_entry_screen.dart';
 import '../../pantry/screens/receipt_scanner_screen.dart';
 import '../../pantry/widgets/pantry_empty_view.dart';
 import '../../recipes/screens/generate_recipe_screen.dart';
-import '../../recipes/widgets/ai_recipe_empty_view.dart';
+import '../../recipes/screens/recipes_tab_screen.dart';
+import '../../../core/services/recipe_step_generator.dart';
+import '../../recipes/widgets/recipe_detail_dialog.dart';
 import '../models/user_profile_data.dart';
 import '../widgets/add_quick_modal.dart';
-import '../widgets/ai_recipe_card.dart';
 import '../widgets/alerts_modal.dart';
-import '../widgets/budget_card.dart';
-import '../widgets/dashboard_header.dart';
-import '../widgets/expiring_items_list.dart';
+import '../widgets/dashboard_home_view.dart';
 import '../widgets/floating_navbar.dart';
 import '../widgets/profile_drawer.dart';
-import '../widgets/spending_chart_card.dart';
 import 'initial_setup_screen.dart';
 
 /// Premium Ecosystem Dashboard for ShelfChef AI supporting both Light & Dark Theme.
@@ -36,7 +35,13 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ShoppingCartScreenState> _cartKey =
+      GlobalKey<ShoppingCartScreenState>();
+  final GlobalKey<RecipesTabScreenState> _recipesKey =
+      GlobalKey<RecipesTabScreenState>();
   int _currentTab = 0; // 0: Home, 1: Pantry, 3: Recipes, 4: Cart
+  // Tabs are built lazily so one failing tab can't blank the whole screen.
+  final Set<int> _visitedTabs = {0};
   late UserProfileData _userProfile;
   List<PantryItem> _pantryItems = [];
 
@@ -50,16 +55,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _openInitialSetupDialog();
       });
+    } else {
+      _loadRecipeSuggestions();
     }
   }
 
+  /// Loads recipe suggestions once (cache first). They are only refreshed
+  /// later by the reload button on the Recipes tab.
+  void _loadRecipeSuggestions() => RecipeStore.instance.ensureSuggested(
+        servings: _userProfile.familyMembers,
+        language: _userProfile.preferredLanguage,
+      );
+
   Future<void> _fetchPantryItems() async {
     final items = await PantryApiService.fetchPantryItems();
-    if (mounted) setState(() => _pantryItems = items);
+    if (mounted) {
+      setState(() => _pantryItems = items);
+      AppNotificationService.instance.checkPantryAlerts(items);
+    }
   }
 
-  void _openInitialSetupDialog() {
-    Navigator.push(
+  /// Home pull-to-refresh: new pantry data and another recipe on the card.
+  Future<void> _refreshHome() {
+    RecipeStore.instance.shuffleFeatured();
+    return _fetchPantryItems();
+  }
+
+  Future<void> _openInitialSetupDialog() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => InitialSetupScreen(
@@ -68,17 +91,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+    // Wait for the setup answers (servings, language) before fetching.
+    if (mounted) _loadRecipeSuggestions();
   }
-
-  double get _totalPantrySpent => _pantryItems.fold(
-        0.0,
-        (sum, item) => sum + (item.estimatedPrice ?? 0.0),
-      );
 
   void _handleTabTap(int index) {
-    if (index == 0) _fetchPantryItems();
-    setState(() => _currentTab = index);
+    if (index == 0) {
+      RecipeStore.instance.shuffleFeatured();
+      _fetchPantryItems();
+    }
+    if (index == 3) _recipesKey.currentState?.reload();
+    if (index == 4) _cartKey.currentState?.reload();
+    setState(() {
+      _currentTab = index;
+      _visitedTabs.add(index == 2 ? 0 : index);
+    });
   }
+
+  Widget _lazyTab(int index, Widget Function() build) =>
+      _visitedTabs.contains(index) ? build() : const SizedBox.shrink();
 
   void _openAddModal() => AddQuickModal.show(
         context,
@@ -97,7 +128,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (result == true && mounted) {
       _fetchPantryItems();
-      setState(() => _currentTab = 1);
+      setState(() {
+        _currentTab = 1;
+        _visitedTabs.add(1);
+      });
     }
   }
 
@@ -108,7 +142,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (newItem != null && mounted) {
       _fetchPantryItems();
-      setState(() => _currentTab = 1);
+      setState(() {
+        _currentTab = 1;
+        _visitedTabs.add(1);
+      });
     }
   }
 
@@ -124,6 +161,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _openFeaturedRecipe() {
+    final featured = RecipeStore.instance.featured;
+    if (featured == null) {
+      _openGenerateRecipe();
+      return;
+    }
+    var full = featured;
+    if (full.steps.isEmpty) {
+      full = full.withSteps(
+        RecipeStepGenerator.generate(
+          name: full.name,
+          category: full.category,
+          ingredients: full.allIngredientDetails,
+          lang: _userProfile.preferredLanguage,
+        ),
+      );
+    }
+    RecipeDetailDialog.show(
+      context,
+      recipe: full,
+      peopleCount: _userProfile.familyMembers,
+      language: _userProfile.preferredLanguage,
+      onSavedChanged: RecipeStore.instance.onSavedChanged,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -132,6 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.background,
+      drawerScrimColor: Colors.black.withValues(alpha: isDark ? 0.45 : 0.22),
       endDrawer: ProfileDrawer(
         userProfile: _userProfile,
         onSave: (updatedProfile) {
@@ -163,14 +227,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IndexedStack(
             index: _currentTab == 2 ? 0 : _currentTab,
             children: [
-              _buildHomeDashboardView(isDark),
-              PantryEmptyView(
-                onScanReceipt: _openReceiptScanner,
-                onAddItemManually: _openManualEntry,
+              DashboardHomeView(
+                userProfile: _userProfile,
+                pantryItems: _pantryItems,
+                onRefresh: _refreshHome,
+                onOpenAlerts: _openAlertsDialog,
+                onOpenProfile: _openProfileDrawer,
+                onViewAllExpiring: () => setState(() {
+        _currentTab = 1;
+        _visitedTabs.add(1);
+      }),
+                onStartCooking: _openFeaturedRecipe,
+              ),
+              _lazyTab(
+                1,
+                () => PantryEmptyView(
+                  onScanReceipt: _openReceiptScanner,
+                  onAddItemManually: _openManualEntry,
+                ),
               ),
               const SizedBox(),
-              AiRecipeEmptyView(onGenerateRecipes: _openGenerateRecipe),
-              const ShoppingCartScreen(),
+              _lazyTab(
+                3,
+                () => RecipesTabScreen(
+                  key: _recipesKey,
+                  peopleCount: _userProfile.familyMembers,
+                  language: _userProfile.preferredLanguage,
+                  onGenerateRecipes: _openGenerateRecipe,
+                ),
+              ),
+              _lazyTab(4, () => ShoppingCartScreen(key: _cartKey)),
             ],
           ),
           Positioned(
@@ -184,53 +270,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildHomeDashboardView(bool isDark) {
-    final activeColor = isDark ? AppColors.darkAccent : AppColors.primaryGreen;
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: _fetchPantryItems,
-        color: activeColor,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          padding: const EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 12,
-            bottom: 110,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DashboardHeader(
-                userName: _userProfile.fullName,
-                imagePath: _userProfile.imagePath,
-                avatarEmoji: _userProfile.avatarEmoji,
-                onOpenAlerts: _openAlertsDialog,
-                onOpenProfile: _openProfileDrawer,
-              ),
-              const SizedBox(height: 24),
-              BudgetCard(
-                spentAmount: _totalPantrySpent,
-                totalBudget: _userProfile.monthlyBudget,
-              ),
-              const SizedBox(height: 24),
-              ExpiringItemsList(
-                liveItems: _pantryItems,
-                onViewAll: () => setState(() => _currentTab = 1),
-              ),
-              const SizedBox(height: 24),
-              const AiRecipeCard(),
-              const SizedBox(height: 24),
-              SpendingChartCard(items: _pantryItems),
-            ],
-          ),
-        ),
       ),
     );
   }

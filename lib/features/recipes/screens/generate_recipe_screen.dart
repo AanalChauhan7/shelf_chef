@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../core/core.dart';
+import '../../../core/services/app_language_service.dart';
 import '../../../core/services/gemini_recipe_service.dart';
+import '../models/generated_recipe.dart';
 import '../models/ingredient_item.dart';
 import '../widgets/ai_recipe_results_modal.dart';
 import '../widgets/ingredient_input_section.dart';
 import '../widgets/language_selector_card.dart';
 import '../widgets/people_counter_card.dart';
+import '../widgets/search_recipe_bottom_bar.dart';
 
 /// Screen for generating AI recipes from manual & scanned ingredients.
 class GenerateRecipeScreen extends StatefulWidget {
@@ -44,24 +47,62 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
       IngredientItem(id: '2', name: 'Whole Eggs', quantity: '4', unit: 'pcs'),
       IngredientItem(id: '3', name: 'Fresh Milk', quantity: '500', unit: 'ml'),
     ];
+    _loadPantryIngredients();
+  }
+
+  /// Replaces the sample ingredients with the user's real pantry (GET /pantry).
+  Future<void> _loadPantryIngredients() async {
+    final items = await PantryApiService.fetchPantryItems();
+    if (!mounted || items.isEmpty) return;
+    setState(() {
+      _ingredients = items
+          .where((item) => !item.isExpired)
+          .map(
+            (item) => IngredientItem(
+              id: item.id,
+              name: item.name,
+              quantity: item.quantity,
+              unit: item.unit,
+            ),
+          )
+          .toList();
+    });
   }
 
   void _searchRecipeWithAi() async {
     if (_ingredients.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least 1 ingredient to search recipes.'),
+        SnackBar(
+          content: Text(
+            AppLanguageService.tr('add_ingredient_warning', _selectedLanguage),
+          ),
         ),
       );
       return;
     }
 
     setState(() => _isSearching = true);
-    final recipes = await GeminiRecipeService.generateRecipes(
+
+    // Call Gemini AI recipe generator with the user's custom ingredients and selected language
+    List<GeneratedRecipe> recipes = await GeminiRecipeService.generateRecipes(
       ingredients: _ingredients,
       peopleCount: _peopleCount,
       preferredLanguage: _selectedLanguage,
     );
+
+    // If generation returned empty, fall back to API (with auto-translation)
+    if (recipes.isEmpty) {
+      final apiRecipes = await _fetchRecipesFromApi();
+      recipes = apiRecipes
+          .map((r) => AppLanguageService.translateRecipe(r, _selectedLanguage))
+          .toList();
+    }
+
+    // Double-check all recipes are in the selected language
+    recipes = recipes
+        .map((r) => AppLanguageService.translateRecipe(r, _selectedLanguage))
+        .toList();
+
     if (!mounted) return;
     setState(() => _isSearching = false);
 
@@ -70,7 +111,23 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
       peopleCount: _peopleCount,
       ingredients: _ingredients,
       recipes: recipes,
+      language: _selectedLanguage,
+      title: AppLanguageService.tr('chef_recipes', _selectedLanguage),
     );
+  }
+
+  /// Top three recipes (Gujarati, Indian, Global) from `GET /recipes`.
+  Future<List<GeneratedRecipe>> _fetchRecipesFromApi() async {
+    try {
+      final all = await RecipeApiService.fetchRecipes(
+        servings: _peopleCount,
+        language: _selectedLanguage,
+        timeout: const Duration(seconds: 25),
+      );
+      return RecipeApiService.topThreeByCategory(all);
+    } on RecipeApiException {
+      return [];
+    }
   }
 
   @override
@@ -93,7 +150,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Generate AI Recipe',
+          AppLanguageService.tr('generate_recipe', _selectedLanguage),
           style: TextStyle(
             color: primaryTextColor,
             fontSize: 18,
@@ -135,7 +192,10 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                     ),
                     children: [
                       Text(
-                        'Customize your ingredients, portions & language preference to find zero-waste recipes.',
+                        AppLanguageService.tr(
+                          'generate_recipe_subtitle',
+                          _selectedLanguage,
+                        ),
                         style: TextStyle(
                           color: secondaryTextColor,
                           fontSize: 13,
@@ -152,6 +212,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                       PeopleCounterCard(
                         count: _peopleCount,
                         defaultFamilyCount: widget.initialPeopleCount,
+                        language: _selectedLanguage,
                         onChanged: (newCount) {
                           setState(() => _peopleCount = newCount);
                         },
@@ -159,6 +220,7 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                       const SizedBox(height: 16),
                       IngredientInputSection(
                         ingredients: _ingredients,
+                        language: _selectedLanguage,
                         onChanged: (newList) {
                           setState(() => _ingredients = newList);
                         },
@@ -167,92 +229,16 @@ class _GenerateRecipeScreenState extends State<GenerateRecipeScreen> {
                     ],
                   ),
                 ),
-                _buildSearchBottomBar(isDark),
+                SearchRecipeBottomBar(
+                  isDark: isDark,
+                  isSearching: _isSearching,
+                  language: _selectedLanguage,
+                  onPressed: _searchRecipeWithAi,
+                ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSearchBottomBar(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkCard.withValues(alpha: 0.9)
-            : Colors.white.withValues(alpha: 0.9),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? AppColors.darkBorder : AppColors.border,
-          ),
-        ),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 54,
-        child: ElevatedButton(
-          onPressed: _isSearching ? null : _searchRecipeWithAi,
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            elevation: 2,
-          ),
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: AppGradients.aiGradient,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Container(
-              alignment: Alignment.center,
-              child: _isSearching
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Gemini AI Chef is Thinking...',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.auto_awesome_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          'Search Recipe with AI',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ),
       ),
     );
   }

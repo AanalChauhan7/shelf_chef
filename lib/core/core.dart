@@ -14,10 +14,14 @@ export 'utils/app_validators.dart';
 // Core Services Export
 export 'services/auth_service.dart';
 export 'services/guest_storage_service.dart';
+export 'services/api_client.dart';
 export 'services/pantry_api_service.dart';
+export 'services/recipe_api_service.dart';
 export 'services/shopping_api_service.dart';
 export 'services/theme_service.dart';
 export 'services/tts_service.dart';
+export 'models/app_notification_item.dart';
+export 'services/app_notification_service.dart';
 
 // Custom Common Widgets Exports
 export '../widgets/glass_container.dart';

@@ -42,6 +42,7 @@ Thumbs.db
 /coverage/
 
 # Android related
+*.apk
 **/android/local.properties
 **/android/key.properties
 **/android/app/local.properties
